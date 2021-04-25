@@ -1,0 +1,8 @@
+{application, ehttpd,
+    [{description, "WEB & API Service"},
+     {vsn, "1.4.1"},
+     {applications, [kernel, stdlib]},
+     {modules, []},
+     {env, []},
+     {mod, {ehttpd_app, []}},
+     {registered, [ehttpd_app]}]}.

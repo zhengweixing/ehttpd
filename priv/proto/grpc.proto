@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package auth;
+
+service Greeter {
+  rpc SayHello (AuthRequest) returns (AuthReply) {}
+}
+
+message AuthRequest {
+  string name = 1;
+}
+
+message AuthReply {
+  string message = 1;
+}

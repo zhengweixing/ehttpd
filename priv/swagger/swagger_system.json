@@ -1,0 +1,126 @@
+{
+  "tags": [
+    {
+      "name": "System",
+      "description": "系统操作接口"
+    }
+  ],
+  "definitions": {
+    "Swagger": {
+      "type": "object",
+      "properties": {
+        "definitions": {
+          "description": "Models",
+          "type": "object"
+        },
+        "paths": {
+          "description": "路径",
+          "type": "object"
+        }
+      }
+    }
+  },
+  "paths": {
+    "/generate_api": {
+      "post": {
+        "summary": "根据swagger产生API代码",
+        "description": "根据swagger产生API代码",
+        "security": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mod",
+            "type": "string",
+            "description": "模块名",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "swagger",
+            "description": "swagger描述",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Swagger"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns operation status"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/generate_grpc": {
+      "post": {
+        "summary": "根据Protobuf产生API代码",
+        "description": "根据Protobuf产生API代码",
+        "security": [],
+        "consumes": [
+          "application/proto"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mod",
+            "type": "string",
+            "description": "模块名",
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "generate",
+            "type": "string",
+            "description": "server或client",
+            "required": true,
+            "enum": [
+              "server",
+              "client"
+            ]
+          },
+          {
+            "in": "body",
+            "name": "protobuf",
+            "description": "protobuf描述",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns operation status"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "System"
+        ]
+      }
+    }
+  }
+}

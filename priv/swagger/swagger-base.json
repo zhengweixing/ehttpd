@@ -1,0 +1,78 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "HTTP API",
+    "description": "HTTP API",
+    "termsOfService": "http://www.xxxx.com",
+    "contact": {
+      "name": "技术支持",
+      "email": ""
+    }
+  },
+  "externalDocs": {
+    "description": "在线文档",
+    "url": "http://www.xxxx.com"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "basePath": "/iotapi",
+  "securityDefinitions": {
+    "APIKeyHeader": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "sessionToken"
+    },
+    "BasicAuth": {
+      "type": "basic"
+    },
+    "CookieAuth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "sessionToken"
+    },
+    "APIKeyQueryParam": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "sessionToken"
+    }
+  },
+  "security": [
+    {
+      "APIKeyHeader": []
+    },
+    {
+      "BasicAuth": []
+    },
+    {
+      "APIKeyQueryParam": []
+    },
+    {
+      "CookieAuth": []
+    }
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "tags": [
+  ],
+  "definitions": {
+    "Error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "description": "状态码",
+          "type": "number"
+        },
+        "error": {
+          "description": "错误提示",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

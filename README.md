@@ -1,2 +1,1 @@
-# ehttpd
-HTTP Server for Erlang， use swagger
+# ehttpdWEB后端服务和API服务# 如何编写API### 1.写好swagger文件### 2 将上面的文件调用API,产生handle文件### 3 怎么新建一个http server### 4 怎么加一个route模块# 访问
