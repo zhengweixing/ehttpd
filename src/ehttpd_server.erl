@@ -9,12 +9,34 @@
 -module(ehttpd_server).
 -include("ehttpd.hrl").
 -author("kenneth").
--export([child_spec/2, bind/4, docroot/0]).
+-export([start/2, stop/1, bind/4, docroot/0]).
 -export([add_hook/2, run_hook/3, reload_paths/0, reload_paths/2, get_env/2, get_path/2]).
+
 %% 获取HTTP Server
-child_spec(App, Name) ->
+start(Name, App) ->
     Env = get_env(App),
-    get_child_spec(Name, Env).
+    #{
+        port := Port
+%%        acceptors := Acceptors
+    } = Env,
+    ExtraOpts = maps:get(cowboy_extra_opts, Env, []),
+    DefaultOpts = #{
+        env => #{
+            dispatch => get_routes(Name, Env)
+        }
+    },
+    ProtoOpts = get_config(ExtraOpts, DefaultOpts),
+    TransOpts = [{port, Port}],
+    SSL = maps:with([cacertfile, certfile, keyfile], Env),
+    case maps:size(SSL) > 0 of
+        true ->
+            cowboy:start_tls(Name, TransOpts ++ maps:to_list(SSL), ProtoOpts);
+        false ->
+            cowboy:start_clear(Name, TransOpts, ProtoOpts)
+    end.
+
+stop(Name) ->
+    cowboy:stop_listener(Name).
 
 
 %% 重新设置路由表
@@ -27,7 +49,7 @@ reload_paths() ->
     reload_paths(?APP, ?WEBSERVER).
 
 
--spec add_hook(Key::atom(), {Mod::module(), Fun::atom()}) -> true.
+-spec add_hook(Key :: atom(), {Mod :: module(), Fun :: atom()}) -> true.
 add_hook(Key, {Mod, Fun}) ->
     case ehttpd_cache:lookup(Key) of
         {error, not_find} ->
@@ -37,11 +59,11 @@ add_hook(Key, {Mod, Fun}) ->
                 true ->
                     true;
                 false ->
-                    ehttpd_cache:insert(Key, [{Mod, Fun}|Hooks])
+                    ehttpd_cache:insert(Key, [{Mod, Fun} | Hooks])
             end
     end.
 
--spec run_hook(Key::atom(), Args::list(), Acc::any()) -> {ok, Acc1::any()} | {error, Reason::any()}.
+-spec run_hook(Key :: atom(), Args :: list(), Acc :: any()) -> {ok, Acc1 :: any()} | {error, Reason :: any()}.
 run_hook(Key, Args, Acc) ->
     case ehttpd_cache:lookup(Key) of
         {error, not_find} ->
@@ -51,7 +73,7 @@ run_hook(Key, Args, Acc) ->
     end.
 
 run_hook_foldl([], _, Acc) -> {ok, Acc};
-run_hook_foldl([{Mod, Fun}|Hooks], Args, Acc) ->
+run_hook_foldl([{Mod, Fun} | Hooks], Args, Acc) ->
     case apply(Mod, Fun, Args ++ [Acc]) of
         {error, Reason} ->
             {error, Reason};
@@ -79,39 +101,6 @@ bind(Path, _Mod, Options, MetaData) ->
 
 docroot() ->
     get_path(?APP, docroot).
-
--spec get_child_spec(Name :: atom(), #{port => inet:port_number(), acceptors => integer(), docroot => list()}) -> {ok, pid()} | {error, any()}.
-get_child_spec(Name, #{
-    port:= Port,
-    acceptors:= Acceptors
-} = Env) ->
-    SSL = maps:with([cacertfile, certfile, keyfile], Env),
-    IP = {0, 0, 0, 0},
-    NetOpts = [{ssl, maps:to_list(SSL)}],
-    {Transport, TransportOpts} = get_transport(IP, Port, NetOpts),
-    TransOpts = [{num_acceptors, Acceptors}|TransportOpts],
-    ExtraOpts = maps:get(cowboy_extra_opts, Env, []),
-    DefaultOpts = #{
-        env =>#{
-            dispatch => get_routes(Name, Env)
-        }
-    },
-    Opts = get_config(ExtraOpts, DefaultOpts),
-    ranch:child_spec(Name, Transport, TransOpts, cowboy_clear, Opts).
-
-
-get_transport(IP, Port, Options) ->
-    Opts = [
-        {ip, IP},
-        {port, Port}
-    ],
-    case proplists:get_value(ssl, Options, []) of
-        [] ->
-            {ranch_tcp, Opts};
-        SslOpts = [_ | _] ->
-            {ranch_ssl, Opts ++ SslOpts}
-    end.
-
 
 get_config([], Opts) ->
     Opts;
@@ -150,10 +139,10 @@ get_path(App, Key) ->
         undefined ->
             undefined;
         "app/" ++ Path ->
-            [TargetApp, "priv/" ++ Path1]= string:split(Path, "/"),
+            [TargetApp, "priv/" ++ Path1] = string:split(Path, "/"),
             Dir = code:priv_dir(list_to_atom(TargetApp)),
             to_path(filename:join(Dir, Path1));
-        "priv/" ++ _ = Path ->
+            "priv/" ++ _ = Path ->
             {file, Here} = code:is_loaded(?MODULE),
             Dir = filename:dirname(filename:dirname(Here)),
             to_path(filename:join([Dir, Path]));
@@ -175,7 +164,7 @@ to_path(Path) when is_list(Path) ->
 to_path(Path) ->
     to_path(Path, []).
 to_path(<<"../", Path/binary>>, Acc) ->
-    to_path(Path, [<<"../">>|Acc]);
+    to_path(Path, [<<"../">> | Acc]);
 to_path(Path, Acc) ->
     {ok, Cwd} = file:get_cwd(),
     Path2 = lists:foldl(fun(<<"../">>, Path1) -> filename:dirname(Path1) end, Cwd, Acc),

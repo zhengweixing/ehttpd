@@ -16,8 +16,7 @@
 start(_StartType, _StartArgs) ->
     {ok, Sup} = ehttpd_sup:start_link(),
     ok = ehttpd_cache:start(),
-    Spec = ehttpd_server:child_spec(?APP, ?WEBSERVER),
-    {ok, _} = supervisor:start_child(Sup, Spec),
+    {ok, _} = ehttpd_server:start(?WEBSERVER, ?APP),
     {ok, Sup}.
 
 stop(_State) ->
