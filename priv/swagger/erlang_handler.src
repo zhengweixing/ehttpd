@@ -75,7 +75,7 @@ handle(OperationID, Args, Context, Req) ->
 %% {{ api.tags }} 概要: {{ api.summary }} 描述:{{ api.description }}
 %% OperationId:{{ api.operationid }}
 %% 请求:{{ api.method }} {{ api.path }}
-do_request({{ api.operationid }}, _Args, Context, Req) ->
+do_request({{ api.operationid }}, _Args, Context, _Req) ->
     Response = maps:get(check_response, Context, #{}),
     % @todo 自己实现函数
     {200, Response};

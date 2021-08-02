@@ -75,12 +75,12 @@ do_request(post_generate_api, #{<<"mod">> := Mod} = Args, _Context, _Req) ->
     SWSchema = maps:without([<<"mod">>], Args),
     case ehttpd_swagger:compile(binary_to_atom(Mod), SWSchema) of
         {ok, Module, Src} when is_binary(Src) ->
-            FileName = "iot_plugin.zip",
+            FileName = "ehttpd_plugin.zip",
             SrcPath = lists:concat(["handler/", Module, ".erl"]),
             SchemaPath = binary_to_list(<<"swagger/swagger_", Mod/binary, ".json">>),
             case create_zip(FileName, [
-                {"iot_plugin/priv/" ++ SchemaPath, jsx:encode(SWSchema)},
-                {"iot_plugin/src/" ++ SrcPath, Src}
+                {"ehttpd_plugin/priv/" ++ SchemaPath, jsx:encode(SWSchema)},
+                {"ehttpd_plugin/src/" ++ SrcPath, Src}
             ]) of
                 {ok, ZipFile} ->
                     Headers = #{

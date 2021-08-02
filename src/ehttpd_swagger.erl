@@ -47,7 +47,7 @@ compile(Mod, Schema, OutPath) when is_map(Schema) ->
 
 %% 根据swagger动态编译出模块
 compile(Mod, Schema) ->
-    Module = list_to_atom(lists:concat(["iot_", Mod, "_handler"])),
+    Module = list_to_atom(lists:concat(["ehttpd_", Mod, "_handler"])),
     Hand = fun(Source) -> format_val(Mod, Source) end,
     case read(?WEBSERVER, #{}) of
         {ok, SWSchema} ->

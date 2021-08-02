@@ -1,7 +1,7 @@
 {application, ehttpd,
     [{description, "WEB & API Service"},
      {vsn, "1.4.1"},
-     {applications, [kernel, stdlib]},
+     {applications, [kernel, stdlib, erlydtl]},
      {modules, []},
      {env, []},
      {mod, {ehttpd_app, []}},
