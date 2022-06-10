@@ -1,11 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author kenneth
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 26. 四月 2019 17:13
-%%%-------------------------------------------------------------------
 -module(ehttpd_rest).
 -include("ehttpd.hrl").
 -author("kenneth").
@@ -332,19 +324,19 @@ do_authorized(LogicHandler, OperationID, Args, Req) ->
 
 
 do_response(Status, Headers, Body, Req, State) when is_map(Body); is_list(Body) ->
-    do_response(Status, Headers, jsx:encode(Body), Req, State);
+    do_response(Status, Headers, jiffy:encode(Body), Req, State);
 do_response(Status, Headers, Body, Req0, State) when is_binary(Body) ->
     NewHeaders = maps:merge(Headers, ?HEADER),
     Req =
         case Status == 500 of
             true ->
-                case application:get_env(ehttpd, developer_mode, false) of
+                case application:get_env(ehttpd, debug, false) of
                     true ->
                         logger:info("Response 500:~p~n", [Body]),
                         ehttpd_req:reply(Status, NewHeaders, Body, Req0);
                     false ->
                         Res = #{<<"error">> => <<"Server Internal error">>},
-                        ehttpd_req:reply(Status, NewHeaders, jsx:encode(Res), Req0)
+                        ehttpd_req:reply(Status, NewHeaders, jiffy:encode(Res), Req0)
                 end;
             false ->
                 ehttpd_req:reply(Status, NewHeaders, Body, Req0)

@@ -1,38 +1,16 @@
-%%%-------------------------------------------------------------------
-%%% @author zhengweixing
-%%% @copyright (C) 2019
-%%% @doc
-%%% HTTP API 处理模块
-%%% 根据swagger自动产生, 产生时间: {% now "r" %}
-%%% @end
-%%%-------------------------------------------------------------------
 -module(iot_{{ mod }}_handler).
 -behavior(ehttpd_rest).
 
-%% 标识为ehttpd服务的API
 -ehttpd_rest(ehttpd).
 
 %% API
 -export([swagger_{{ mod }}/0]).
 -export([handle/4]).
 
-%% API描述
-%% 支持二种方式导入
-%% 示例:
-%% 1. Metadata为map表示的JSON,
-%%    ehttpd_server:bind(<<"/{{ mod }}">>, ?MODULE, [], Metadata)
-%% 2. 从模块的priv/swagger/下导入
-%%    ehttpd_server:bind(<<"/swagger_{{ mod }}.json">>, ?MODULE, [], priv)
-swagger_{{ mod }}() ->
+swagger() ->
     [
         ehttpd_server:bind(<<"/swagger_{{ mod }}.json">>, ?MODULE, [], priv)
     ].
-
-
-%%%===================================================================
-%%% 请求处理
-%%%  如果登录, Context 内有 <<"user">>, version
-%%%===================================================================
 
 -spec handle(OperationID :: atom(), Args :: map(), Context :: map(), Req :: ehttpd_req:req()) ->
     {Status :: ehttpd_req:http_status(), Body :: map()} |
@@ -41,46 +19,33 @@ swagger_{{ mod }}() ->
 
 handle(OperationID, Args, Context, Req) ->
     Headers = #{},
-    case catch do_request(OperationID, Args, Context, Req) of
-        {ErrType, Reason} when ErrType == 'EXIT'; ErrType == error ->
-            logger:info("do request: ~p, ~p, ~p~n", [OperationID, Args, Reason]),
-            Err = case is_binary(Reason) of
-                      true -> Reason;
-                      false -> list_to_binary(io_lib:format("~p", [Reason]))
-                  end,
+    case do_request(OperationID, Args, Context, Req) of
+        {error, Reason} ->
+            Err = list_to_binary(io_lib:format("~p", [Reason])),
             {500, Headers, #{ <<"error">> => Err }};
         ok ->
-            % logger:debug("do request: ~p, ~p ->ok ~n", [OperationID, Args]),
             {200, Headers, #{}, Req};
         {ok, Res} ->
             logger:info("do request: ~p, ~p ->~p~n", [OperationID, Args, Res]),
             {200, Headers, Res, Req};
         {Status, Res} ->
-            logger:info("do request: ~p, ~p ->~p~n", [OperationID, Args, Res]),
             {Status, Headers, Res, Req};
         {Status, NewHeaders, Res} ->
-            logger:info("do request: ~p, ~p ->~p~n", [OperationID, Args, Res]),
             {Status, maps:merge(Headers, NewHeaders), Res, Req};
         {Status, NewHeaders, Res, NewReq} ->
-            % logger:debug("do request: ~p, ~p ->~p~n", [OperationID, Args, Res]),
             {Status, maps:merge(Headers, NewHeaders), Res, NewReq}
     end.
 
 
-%%%===================================================================
-%%% 内部函数 Version:API版本
-%%%===================================================================
-
 {% for api in apis %}
-%% {{ api.tags }} 概要: {{ api.summary }} 描述:{{ api.description }}
+%% {{ api.tags }} summary:{{ api.summary }} desc:{{ api.description }}
 %% OperationId:{{ api.operationid }}
-%% 请求:{{ api.method }} {{ api.path }}
+%% {{ api.method }} {{ api.path }}
 do_request({{ api.operationid }}, _Args, Context, _Req) ->
     Response = maps:get(check_response, Context, #{}),
     % @todo 自己实现函数
     {200, Response};
 {% endfor %}
 
-%%  服务器不支持的API接口
 do_request(_OperationId, _Args, _Context, _Req) ->
     {error, <<"Not Allowed.">>}.

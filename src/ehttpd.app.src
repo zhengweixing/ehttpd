@@ -1,8 +1,21 @@
 {application, ehttpd,
     [{description, "WEB & API Service"},
      {vsn, "1.4.1"},
-     {applications, [kernel, stdlib, erlydtl]},
+     {applications, [
+       kernel,
+       stdlib
+     ]},
      {modules, []},
-     {env, []},
+     {env, [
+         {port, 6080},
+         {docroot, "priv/www/"},
+         {sessionExpiration, 1800},
+         {access_control_allow_headers, "Origin, sessionToken, X-Requested-With, Content-Type, Accept"},
+%%         {cacertfile, "priv/TLS/ca/ca.crt"},
+%%         {certfile, "priv/TLS/server/server.crt"},
+%%         {keyfile, "priv/TLS/server/server.key"},
+         {debug, true},
+         {swagger, "priv/swagger/swagger-base.json"}
+     ]},
      {mod, {ehttpd_app, []}},
      {registered, [ehttpd_app]}]}.

@@ -2,18 +2,9 @@
 -export([check_request/2, check_response/3]).
 
 
-%%%===================================================================
-%%% 请求参数检查
-%%%===================================================================
-
 check_request(Context, Req) ->
     Params = maps:get(check_request, Context, []),
     check_request_params(Params, Req, #{}).
-
-
-%%%===================================================================
-%%% 返回数据检查
-%%%===================================================================
 
 check_response(Code, Context, Body) ->
     RtnParams = maps:get(check_response, Context, #{}),
@@ -21,17 +12,13 @@ check_response(Code, Context, Body) ->
     validate(schema, Schema, Body).
 
 
-%%%===================================================================
-%%% 内部函数
-%%%===================================================================
-
 check_request_params([], Req, Model) ->
     {ok, Model, Req};
 check_request_params([{Name, #{<<"in">> := <<"body">>} = Schema} | Acc], Req0, Model) ->
     {ok, Body, Req} = ehttpd_req:read_body(Req0),
     Params =
         try
-            case jsx:decode(Body, [{labels, binary}, return_maps]) of
+            case jiffy:decode(Body, [return_maps]) of
                 Items when is_list(Items) ->
                     Model#{
                         Name => Items
@@ -53,7 +40,7 @@ check_request_params([{Name, #{<<"in">> := Source} = Rules} | Acc], Req, Model) 
 
 
 validate(Rule = {<<"type">>, <<"object">>}, Name, Value) ->
-    case catch jsx:decode(Value, [{labels, binary}, return_maps]) of
+    case catch jiffy:decode(Value, [return_maps]) of
         Object when is_map(Object) ->
             {ok, Object};
         _ ->

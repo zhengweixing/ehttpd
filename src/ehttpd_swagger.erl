@@ -1,11 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author kenneth
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 19. 四月 2019 18:30
-%%%-------------------------------------------------------------------
 -module(ehttpd_swagger).
 -author("kenneth").
 -behaviour(gen_server).
@@ -15,25 +7,24 @@
 
 %% API
 -export([start_link/0]).
--export([generate/5, write/3, read/2, list/0, parse_schema/3, load_schema/3, compile/2, compile/3]).
+-export([generate/5, write/3, read/2, list/0, parse_schema/3, load_schema/3, compile/4, compile/3]).
 -record(api, {authorize, base_path, check_request, check_response, consumes, description, method, operationid, path, produces, summary, tags, version}).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 
-%% 根据swagger动态编译出模块到文件
--spec compile(Mod::atom(), InPath::list(), OutPath::list()) ->
+-spec compile(Name:: atom(), Mod::atom(), InPath::list(), OutPath::list()) ->
     {ok, Module::atom()} | {error, Reason::any()}.
-compile(Mod, InPath, OutPath) when is_list(InPath) ->
+compile(Name, Mod, InPath, OutPath) when is_list(InPath) ->
     case file:read_file(InPath) of
         {ok, Bin} ->
-            Schema = jsx:decode(Bin, [{labels, binary}, return_maps]),
-            compile(Mod, Schema, OutPath);
+            Schema = jiffy:decode(Bin, [return_maps]),
+            compile(Name, Mod, Schema, OutPath);
         {error, Reason} ->
             {error, Reason}
     end;
-compile(Mod, Schema, OutPath) when is_map(Schema) ->
-    case compile(Mod, Schema) of
+compile(Name, Mod, Schema, OutPath) when is_map(Schema) ->
+    case compile(Name, Mod, Schema) of
         {ok, Module, Bin} ->
             case file:write_file(OutPath, Bin) of
                 ok ->
@@ -46,10 +37,10 @@ compile(Mod, Schema, OutPath) when is_map(Schema) ->
     end.
 
 %% 根据swagger动态编译出模块
-compile(Mod, Schema) ->
+compile(Name,  Mod, Schema) ->
     Module = list_to_atom(lists:concat(["ehttpd_", Mod, "_handler"])),
     Hand = fun(Source) -> format_val(Mod, Source) end,
-    case read(?WEBSERVER, #{}) of
+    case read(Name, #{}) of
         {ok, SWSchema} ->
             Fun =
                 fun(Path, Method, MethodInfo, AccSchema) ->
@@ -75,12 +66,10 @@ compile(Mod, Schema) ->
 
 
 dtl_compile(Mod, TplPath, Vals, Opts) ->
-    case catch apply(Mod, compile, [{file, TplPath}, render, [{out_dir, false} | Opts]]) of
+    case apply(Mod, compile, [{file, TplPath}, render, [{out_dir, false} | Opts]]) of
         {ok, Render} ->
             {ok, IoList} = Render:render(Vals),
             {ok, unicode:characters_to_binary(IoList)};
-        {'EXIT', Reason} ->
-            {error, Reason};
         error ->
             case file:read_file_info(TplPath) of
                 {error, Reason} -> {error, Reason};
@@ -89,32 +78,19 @@ dtl_compile(Mod, TplPath, Vals, Opts) ->
     end.
 
 
-%% 检查模块是否有swagger
-generate(_ServerName, Handlers, Path, AccIn, Hand) ->
-    {ok, Version} = application:get_key(ehttpd, vsn),
-    {ok, #{ <<"info">> := Info } = BaseSchemas0} = load_schema(Path, [{labels, binary}, return_maps]),
-    BaseSchemas = BaseSchemas0#{
-        <<"info">> => Info#{
-            <<"version">> => maps:get(<<"version">>, Info, list_to_binary(Version))
-        }
-    },
+generate(Name, Handlers, Path, AccIn, Hand) ->
+    {ok, #{
+        <<"info">> := Info
+    } = BaseSchemas} = load_schema(Path, [return_maps]),
     Fun =
         fun(Mod, Acc) ->
-            try
-                check_mod_swagger(Mod, Acc, Hand)
-            catch
-                _ErrType:Reason  ->
-                    logger:error("~p ~p", [Mod, Reason]),
-                    Acc
-            end
+            check_mod_swagger(Mod, Acc, Hand)
         end,
     lists:foldl(Fun, maps:merge(BaseSchemas, AccIn), Handlers).
 
-%% 写入swagger文件
 write(Name, Version, Schema) ->
     gen_server:call(?SERVER, {write, Name, Version, Schema}).
 
-%% 读取swagger文件
 read(Name, Config) ->
     gen_server:call(?SERVER, {read, Name, Config}).
 
@@ -133,13 +109,7 @@ load_schema(Path, Opts) ->
         {ok, Bin} ->
             case lists:member(return_maps, Opts) of
                 true ->
-                    case catch jsx:decode(Bin, Opts) of
-                        {'EXIT', Reason} ->
-                            logger:error("decode error,~p,~p~n", [Path, Reason]),
-                            {error, Reason};
-                        Schemas ->
-                            {ok, Schemas}
-                    end;
+                    {ok, jiffy:decode(Bin, [return_maps])};
                 false ->
                     {ok, Bin}
             end
@@ -165,7 +135,7 @@ handle_call({write, Name, Version, Schema}, _From, #state{swagger = List} = Stat
     case lists:keyfind(Name, 1, List) of
         false ->
             SchemaPath = get_priv(?MODULE, ?SWAGGER(Name, Version)),
-            Reply = file:write_file(SchemaPath, jsx:encode(Schema), [write]),
+            Reply = file:write_file(SchemaPath, jiffy:encode(Schema), [write]),
             {reply, Reply, State#state{swagger = [{Name, Version} | List]}};
         {Name, _Version} ->
             {reply, {error, exist}, State}
@@ -174,7 +144,7 @@ handle_call({write, Name, Version, Schema}, _From, #state{swagger = List} = Stat
 handle_call({read, Name, Config}, _From, #state{swagger = List} = State) ->
     case lists:keyfind(Name, 1, List) of
         false ->
-            {reply, {error, not_find}, State};
+            {reply, {error, notfound}, State};
         {Name, CurVersion} ->
             Version = maps:get(<<"version">>, Config, CurVersion),
             Fun =
@@ -222,11 +192,6 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
-%%%===================================================================
-%%% 内部函数
-%%%===================================================================
-
-
 check_mod_swagger(Mod, Schema, Hand) ->
     F =
         fun(NewSchema, AccSchema) ->
@@ -235,26 +200,12 @@ check_mod_swagger(Mod, Schema, Hand) ->
                     Hand(Mod, Path, Method, NewMethodInfo, AccSchemas)
                 end)
         end,
-    Functions = Mod:module_info(exports),
-    lists:foldl(
-        fun
-            ({Fun, 0}, Acc) ->
-                case binary:split(list_to_binary(atom_to_list(Fun)), <<"swagger_">>) of
-                    [<<>>, _Path] ->
-                        case Mod:Fun() of
-                            {error, _Reason} ->
-                                Acc;
-                            NewSchemas when is_list(NewSchemas) ->
-                                lists:foldl(F, Acc, NewSchemas);
-                            NewSchema when is_map(NewSchema) ->
-                                F(NewSchema, Acc)
-                        end;
-                    _ ->
-                        Acc
-                end;
-            (_, Acc) ->
-                Acc
-        end, Schema, Functions).
+    case Mod:swagger() of
+        NewSchemas when is_list(NewSchemas) ->
+            lists:foldl(F, Schema, NewSchemas);
+        NewSchema when is_map(NewSchema) ->
+            F(NewSchema, Schema)
+    end.
 
 
 parse_schema(NewSchema, AccSchema, Hand) ->
@@ -286,8 +237,6 @@ do_method_fun(Path, Method, MethodInfo, SWSchemas, Hand) ->
     MethodAcc = maps:get(Path, Paths, #{}),
     case maps:get(Method, MethodAcc, no) of
         no ->
-            % logger:info("Path -> ~s, ~s ~s~n", [OperationId, Method, NewPath]),
-%%            BinOpId = list_to_binary(io_lib:format("~p", [OperationId])),
             PreMethodInfo = MethodInfo#{
                 <<"operationId">> => OperationId
 %%                <<"externalDocs">> => #{
@@ -387,7 +336,3 @@ format_val(Mod, Schema) ->
                 end, Acc, Methods)
         end, [], Paths),
     {Tpl, [{mod, Mod}, {apis, Apis}], [{api, record_info(fields, api)}]}.
-
-
-%%test() ->
-%%    compile(test, )

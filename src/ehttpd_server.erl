@@ -1,23 +1,12 @@
-%%%-------------------------------------------------------------------
-%%% @author kenneth
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%% 通用型HTTP服务器
-%%% @end
-%%% Created : 24. 四月 2019 16:43
-%%%-------------------------------------------------------------------
 -module(ehttpd_server).
 -include("ehttpd.hrl").
--author("kenneth").
 -export([start/2, stop/1, bind/4, docroot/0]).
--export([add_hook/2, run_hook/3, reload_paths/0, reload_paths/2, get_env/2, get_path/2]).
+-export([add_hook/2, run_hook/3, reload_paths/2, get_env/1, get_env/2, get_path/2]).
 
-%% 获取HTTP Server
-start(Name, App) ->
-    Env = get_env(App),
+
+start(Name, Env) ->
     #{
         port := Port
-%%        acceptors := Acceptors
     } = Env,
     ExtraOpts = maps:get(cowboy_extra_opts, Env, []),
     DefaultOpts = #{
@@ -25,6 +14,8 @@ start(Name, App) ->
             dispatch => get_routes(Name, Env)
         }
     },
+    Deps = [cowlib, ranch, cowboy],
+    [application:ensure_all_started(App)|| App <- Deps],
     ProtoOpts = get_config(ExtraOpts, DefaultOpts),
     TransOpts = [{port, Port}],
     SSL = maps:with([cacertfile, certfile, keyfile], Env),
@@ -39,20 +30,15 @@ stop(Name) ->
     cowboy:stop_listener(Name).
 
 
-%% 重新设置路由表
-reload_paths(App, Name) ->
-    Env = get_env(App),
+reload_paths(Name, Env) ->
     Dispatch = get_routes(Name, Env),
     cowboy:set_env(Name, dispatch, Dispatch).
-
-reload_paths() ->
-    reload_paths(?APP, ?WEBSERVER).
 
 
 -spec add_hook(Key :: atom(), {Mod :: module(), Fun :: atom()}) -> true.
 add_hook(Key, {Mod, Fun}) ->
     case ehttpd_cache:lookup(Key) of
-        {error, not_find} ->
+        {error, notfound} ->
             ehttpd_cache:insert(Key, [{Mod, Fun}]);
         {ok, Hooks} ->
             case lists:member({Mod, Fun}, Hooks) of
@@ -66,7 +52,7 @@ add_hook(Key, {Mod, Fun}) ->
 -spec run_hook(Key :: atom(), Args :: list(), Acc :: any()) -> {ok, Acc1 :: any()} | {error, Reason :: any()}.
 run_hook(Key, Args, Acc) ->
     case ehttpd_cache:lookup(Key) of
-        {error, not_find} ->
+        {error, notfound} ->
             {ok, Acc};
         {ok, Hooks} ->
             run_hook_foldl(Hooks, Args, Acc)
@@ -142,7 +128,7 @@ get_path(App, Key) ->
             [TargetApp, "priv/" ++ Path1] = string:split(Path, "/"),
             Dir = code:priv_dir(list_to_atom(TargetApp)),
             to_path(filename:join(Dir, Path1));
-            "priv/" ++ _ = Path ->
+        "priv/" ++ _ = Path ->
             {file, Here} = code:is_loaded(?MODULE),
             Dir = filename:dirname(filename:dirname(Here)),
             to_path(filename:join([Dir, Path]));

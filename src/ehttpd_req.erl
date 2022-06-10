@@ -1,11 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author kenneth
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 28. 四月 2019 9:36
-%%%-------------------------------------------------------------------
 -module(ehttpd_req).
 -author("kenneth").
 
@@ -35,10 +27,9 @@ get_value(<<"cookie">>, Name, Req) ->
     {proplists:get_value(Name, Cookies), Req};
 
 
-%% 取body时，返回新的Req
 get_value(<<"body">>, Name, Req0) ->
     {ok, Body, Req} = read_body(Req0),
-    Params = jsx:decode(Body, [{labels, binary}, return_maps]),
+    Params = jiffy:decode(Body, [return_maps]),
     {maps:get(Name, Params, undefined), Req}.
 
 method(Req) ->
@@ -120,7 +111,7 @@ filter_body({ok, Body1, Req}) ->
     Body = <<Body0/binary, Body1/binary>>,
     case cowboy_req:header(<<"content-type">>, Req) of
         Type when Type == <<"application/x-www-form-urlencoded">>; Type == <<"application/x-www-urlencoded">> ->
-            Body2 = jsx:encode(cow_qs:parse_qs(Body)),
+            Body2 = jiffy:encode(cow_qs:parse_qs(Body)),
             {ok, Body2, Req#{body =>Body2 }};
         _ ->
             {ok, Body, Req#{body => Body}}

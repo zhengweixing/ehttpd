@@ -1,12 +1,3 @@
-%%%-------------------------------------------------------------------
-%%% @author zwx
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%% 对于basic auth鉴权 调用add_hook将勾子挂进去
-%%% 对于其它方式鉴权，调用 put_session
-%%% @end
-%%% Created : 10. 五月 2019 3:49
-%%%-------------------------------------------------------------------
 -module(ehttpd_auth).
 -author("zwx").
 
@@ -19,7 +10,6 @@
 -export([ttl/0]).
 
 
-%% session 期限
 ttl() ->
     application:get_env(ehttpd, session_expiration, 1800).
 
@@ -80,26 +70,21 @@ pre_check(OperationID, LogicHandler, [{Key, #{<<"in">> := From, <<"name">> := Na
     end.
 
 
-%%%===================================================================
-%%% 内部函数
-%%%===================================================================
-
 %% Basic auth
 is_authorized(OperationID, {UserName, Password}, Req) ->
     Key = erlang:md5(binary_to_list(<<UserName/binary, Password/binary>>)),
-    Token = ehttpd_cache:get(Key),
-    case is_binary(Token) andalso byte_size(Token) > 0 andalso get_session(Token) =/= undefined of
-        true ->
-            is_authorized(OperationID, Token, Req);
-        false ->
-            % login'
+    Token = ehttpd_cache:get_with_ttl(Key),
+    case not lists:member(Token, [undefined, expired]) andalso get_session(Token) of
+        undefined ->
             case ehttpd_server:run_hook('http.auth', [UserName, Password], #{  }) of
                 {ok, #{ sessionToken := SessionToken }} ->
-                    ehttpd_cache:set(Key, SessionToken, ttl()),
+                    ehttpd_cache:set_with_ttl(Key, SessionToken, ttl()),
                     is_authorized(OperationID, SessionToken, Req);
                 _ ->
                     {false, #{<<"code">> => 209, <<"error">> => <<"unauthorized">>}, Req}
-            end
+            end;
+        _ ->
+            is_authorized(OperationID, Token, Req)
     end;
 
 %% Token auth, in body, query, header, cookie
@@ -125,14 +110,14 @@ put_session(#{<<"sessionToken">> := SessionToken} = UserInfo, TTL) ->
 
 put_session(SessionToken, UserInfo, TTL) ->
     Key = <<"session#", SessionToken/binary>>,
-    ehttpd_cache:set(Key, jsx:encode(UserInfo), TTL),
+    ehttpd_cache:set_with_ttl(Key, jiffy:encode(UserInfo), TTL),
     ok.
 
 get_session(SessionToken) ->
     Key = <<"session#", SessionToken/binary>>,
-    case ehttpd_cache:get(Key) of
+    case ehttpd_cache:get_with_ttl(Key) of
         <<>> ->
             undefined;
         User when is_binary(User) ->
-            jsx:decode(User, [{labels, binary}, return_maps])
+            jiffy:decode(User, [return_maps])
     end.

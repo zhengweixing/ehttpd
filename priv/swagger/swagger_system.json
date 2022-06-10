@@ -23,8 +23,8 @@
   "paths": {
     "/generate_api": {
       "post": {
-        "summary": "根据swagger产生API代码",
-        "description": "根据swagger产生API代码",
+        "summary": "根据 swagger 产生 API 代码",
+        "description": "根据 swagger 产生 API 代码",
         "security": [],
         "parameters": [
           {
@@ -35,9 +35,16 @@
             "required": true
           },
           {
+            "in": "query",
+            "name": "name",
+            "type": "string",
+            "description": "ServerName",
+            "required": false
+          },
+          {
             "in": "body",
             "name": "swagger",
-            "description": "swagger描述",
+            "description": "swagger 描述",
             "required": true,
             "schema": {
               "$ref": "#/definitions/Swagger"
@@ -66,38 +73,18 @@
         ]
       }
     },
-    "/generate_grpc": {
+    "/upload": {
       "post": {
-        "summary": "根据Protobuf产生API代码",
-        "description": "根据Protobuf产生API代码",
-        "security": [],
+        "summary": "服务器文件上传",
+        "description": "文件上传到服务器",
         "consumes": [
-          "application/proto"
+          "multipart/form-data"
         ],
         "parameters": [
           {
-            "in": "query",
-            "name": "mod",
-            "type": "string",
-            "description": "模块名",
-            "required": true
-          },
-          {
-            "in": "query",
-            "name": "generate",
-            "type": "string",
-            "description": "server或client",
-            "required": true,
-            "enum": [
-              "server",
-              "client"
-            ]
-          },
-          {
-            "in": "body",
-            "name": "protobuf",
-            "description": "protobuf描述",
-            "required": true
+            "name": "file",
+            "in": "formData",
+            "type": "file"
           }
         ],
         "responses": {

@@ -24,7 +24,8 @@ start_link() ->
 
 init([]) ->
     Children = [
-        ?CHILD(ehttpd_swagger, worker)
+        ?CHILD(ehttpd_swagger, worker),
+        ?CHILD(ehttpd_cache, worker)
     ],
     {ok, {{one_for_one, 5, 10}, Children}}.
 

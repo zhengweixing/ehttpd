@@ -1,13 +1,4 @@
-%%%-------------------------------------------------------------------
-%%% @author zwx
-%%% @copyright (C) 2019, <COMPANY>
-%%% @doc
-%%%
-%%% @end
-%%% Created : 26. 四月 2019 3:19
-%%%-------------------------------------------------------------------
 -module(ehttpd_router).
--author("zwx").
 -include("ehttpd.hrl").
 
 %% API
@@ -31,13 +22,12 @@ get_paths(Name, DocRoot) ->
         {"/mod/:Mod/:Fun", ?MODULE, mod},
         {"/swaggers", ?MODULE, swagger_list},
         {"/swagger/:Name", ?MODULE, swagger},
-        {"/install/:Product", ?MODULE, install},
         {"/[...]/", ?MODULE, {index, DocRoot}},
         {"/[...]", ?MODULE, {dir, DocRoot, []}}
     ],
     {Handlers, Routers} = ehttpd_app:check_mod(Name),
     Routers1 = lists:concat([Router:route(#{ docroot => DocRoot })|| Router <- Routers]),
-    BasePath = ehttpd_server:get_path(ehttpd, swagger_basepath),
+    BasePath = ehttpd_server:get_path(ehttpd, swagger),
     lists:concat([get_swagger_routes(Name, Handlers, BasePath), Routers1 ++ DefRoutes]).
 
 path() ->
@@ -70,7 +60,6 @@ get_swagger_routes(Name, Handlers, BasePath) ->
     erase(routes).
 
 parse_path(Mod, Path, Method, MethodInfo, SWSchema, Init) ->
-    % 将swagger路径表达方式转成cowboy表达方式
     NewPath = re:replace(Path, <<"(\\{([^\\}]+)\\})">>, <<":\\2">>, [global, {return, binary}]),
     NewMethod = list_to_binary(string:to_upper(binary_to_list(Method))),
     BasePath = maps:get(<<"basePath">>, SWSchema),
@@ -100,10 +89,6 @@ parse_path(Mod, Path, Method, MethodInfo, SWSchema, Init) ->
     },
     [{Path1, ehttpd_rest, State} || Path1 <- RealPaths].
 
-%%%===================================================================
-%%% 回调函数
-%%%===================================================================
-
 init(Req, {index, DocRoot}) ->
     Path = cowboy_req:path(Req),
     case binary:at(Path, byte_size(Path) - 1) of
@@ -131,12 +116,12 @@ init(Req0, swagger_list) ->
                         end, [], List),
                 ehttpd_req:reply(200, ?HEADER#{
                     <<"content-type">> => <<"application/json; charset=utf-8">>
-                }, jsx:encode(Swaggers), Req0);
+                }, jiffy:encode(Swaggers), Req0);
             {error, Reason} ->
                 Err = list_to_binary(io_lib:format("~p", [Reason])),
                 ehttpd_req:reply(500, ?HEADER#{
                     <<"content-type">> => <<"application/json; charset=utf-8">>
-                }, jsx:encode(#{error => Err}), Req0)
+                }, jiffy:encode(#{error => Err}), Req0)
         end,
     {ok, Req, swagger_list};
 
@@ -149,16 +134,15 @@ init(Req0, swagger = Opts) ->
             {ok, Schema} ->
                 ehttpd_req:reply(200, ?HEADER#{
                     <<"content-type">> => <<"application/json; charset=utf-8">>
-                }, jsx:encode(Schema), Req0);
+                }, jiffy:encode(Schema), Req0);
             {error, Reason} ->
                 Err = list_to_binary(io_lib:format("~p", [Reason])),
                 ehttpd_req:reply(500, ?HEADER#{
                     <<"content-type">> => <<"application/json; charset=utf-8">>
-                }, jsx:encode(#{error => Err }), Req0)
+                }, jiffy:encode(#{error => Err }), Req0)
         end,
     {ok, Req, Opts};
 
-%% 所有服务器回调总入口
 init(Req0, mod) ->
     Mod = ehttpd_req:binding(<<"Mod">>, Req0),
     Fun = ehttpd_req:binding(<<"Fun">>, Req0),
@@ -166,7 +150,7 @@ init(Req0, mod) ->
         case catch apply(list_to_atom(binary_to_list(Mod)), list_to_atom(binary_to_list(Fun)), [Req0]) of
             {Err, Reason} when Err == 'EXIT'; Err == error ->
                 Err = list_to_binary(io_lib:format("~p", [Reason])),
-                Msg = jsx:encode(#{error => Err }),
+                Msg = jiffy:encode(#{error => Err }),
                 ehttpd_req:reply(500, ?HEADER#{
                     <<"content-type">> => <<"application/json; charset=utf-8">>
                 }, Msg, Req0);
@@ -176,7 +160,6 @@ init(Req0, mod) ->
     {ok, Req, mod};
 
 
-%% 跨域
 init(Req, Opts) ->
     case ehttpd_req:method(Req) of
         <<"OPTIONS">> ->
@@ -213,10 +196,6 @@ last_modified(Req, State) ->
 get_file(Req, State) ->
     cowboy_static:get_file(Req, State).
 
-
-%%%===================================================================
-%%% 内部函数
-%%%===================================================================
 
 get_check_request(Map, SWSchema) ->
     Parameters = maps:get(<<"parameters">>, Map, #{}),
@@ -287,7 +266,6 @@ get_operation_id(Path, Method) ->
         end,
     ehttpd_req:to_lower(<<Method/binary, "_", OId/binary>>, [{return, atom}]).
 
-%% cookie认证要放到列表最后
 get_security(Map, SWSchema) ->
     SecurityDefinitions = maps:get(<<"securityDefinitions">>, SWSchema, #{}),
     AllTypes = maps:keys(SecurityDefinitions),
@@ -302,7 +280,6 @@ get_security(Map, SWSchema) ->
         end,
     lists:foldr(Fun, [], SecurityList).
 
-%% swagger2.0 不支持cookie认证，3.0才认证
 format_security(<<"CookieAuth">> = Key, Auth, Acc) ->
     [{Key, Auth#{<<"in">> => <<"cookie">>, <<"type">> => <<"CookieAuth3.0">>}} | Acc];
 format_security(Key, Auth, Acc) ->
@@ -318,7 +295,7 @@ get_produces(Map, SWSchema) ->
 set_state(OperationId, State) ->
     NewIdx =
         case ehttpd_cache:lookup({router, index}) of
-            {error, not_find} -> 0;
+            {error, notfound} -> 0;
             {ok, Index} -> Index + 1
         end,
     true = ehttpd_cache:insert({router, index}, NewIdx),
@@ -333,7 +310,7 @@ get_state_by_operation(OperationId) ->
         {ok, [[Index, State]]} ->
             {ok, {Index, State}};
         {error,empty} ->
-            {error, not_find}
+            {error, notfound}
     end.
 
 url_join(List) ->

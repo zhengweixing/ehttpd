@@ -2,15 +2,16 @@
   "swagger": "2.0",
   "info": {
     "title": "HTTP API",
+    "version": "0.1.0",
     "description": "HTTP API",
-    "termsOfService": "http://www.xxxx.com",
+    "termsOfService": "http://blog.ashufa.com",
     "contact": {
-      "name": "技术支持",
-      "email": ""
+      "name": "support",
+      "email": "529459515@qq.com"
     }
   },
   "externalDocs": {
-    "description": "在线文档",
+    "description": "doc",
     "url": "http://www.xxxx.com"
   },
   "schemes": [
