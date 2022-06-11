@@ -2,8 +2,11 @@
     [{description, "WEB & API Service"},
      {vsn, "1.4.1"},
      {applications, [
-       kernel,
-       stdlib
+         kernel,
+         asn1,
+         stdlib,
+         cowboy,
+         jiffy
      ]},
      {modules, []},
      {env, [

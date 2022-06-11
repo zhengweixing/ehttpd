@@ -78,10 +78,8 @@ dtl_compile(Mod, TplPath, Vals, Opts) ->
     end.
 
 
-generate(Name, Handlers, Path, AccIn, Hand) ->
-    {ok, #{
-        <<"info">> := Info
-    } = BaseSchemas} = load_schema(Path, [return_maps]),
+generate(_Name, Handlers, Path, AccIn, Hand) ->
+    {ok, BaseSchemas} = load_schema(Path, [return_maps]),
     Fun =
         fun(Mod, Acc) ->
             check_mod_swagger(Mod, Acc, Hand)

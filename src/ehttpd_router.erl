@@ -25,7 +25,7 @@ get_paths(Name, DocRoot) ->
         {"/[...]/", ?MODULE, {index, DocRoot}},
         {"/[...]", ?MODULE, {dir, DocRoot, []}}
     ],
-    {Handlers, Routers} = ehttpd_app:check_mod(Name),
+    {Handlers, Routers} = ehttpd_utils:check_module(Name),
     Routers1 = lists:concat([Router:route(#{ docroot => DocRoot })|| Router <- Routers]),
     BasePath = ehttpd_server:get_path(ehttpd, swagger),
     lists:concat([get_swagger_routes(Name, Handlers, BasePath), Routers1 ++ DefRoutes]).

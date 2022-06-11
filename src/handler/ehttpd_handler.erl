@@ -39,7 +39,7 @@ handle(OperationID, Args, Context, Req) ->
 %% POST /iotapi/generate_api
 do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _Context, _Req) ->
     Deps = [compiler, syntax_tools, erlydtl],
-    [application:ensure_all_started(Deps)|| App <- Deps],
+    [application:ensure_all_started(App)|| App <- Deps],
     SWSchema = maps:without([<<"mod">>], Args),
     case ehttpd_swagger:compile(Name, binary_to_atom(Mod), SWSchema) of
         {ok, Module, Src} when is_binary(Src) ->
