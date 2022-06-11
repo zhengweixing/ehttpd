@@ -6,7 +6,9 @@
 -export([query_table/4, check_module/1]).
 
 -define(SYS_APPS, [
-
+    kernel, sasl, crypto, public_key, asn1, syntax_tools,
+    ssl, os_mon, inets, compiler, runtime_tools, redbug,
+    xmerl, sasl
 ]).
 
 
