@@ -4,8 +4,7 @@
 -ehttpd_rest({{ name }}).
 
 %% API
--export([swagger_{{ mod }}/0]).
--export([handle/4]).
+-export([swagger/1, handle/4]).
 
 swagger({{ name }}) ->
     [
