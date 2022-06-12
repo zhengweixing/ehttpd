@@ -209,7 +209,7 @@
         ]
       }
     },
-    "/requestPasswordReset": {
+    "/passwordReset": {
       "post": {
         "security": [],
         "summary": "重置密码",
