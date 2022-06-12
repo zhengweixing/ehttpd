@@ -6,6 +6,19 @@
     }
   ],
   "definitions": {
+    "User": {
+      "type": "object",
+      "properties": {
+        "secret": {
+          "type": "string",
+          "description": "username"
+        },
+        "nick": {
+          "type": "string",
+          "description": "nickname"
+        }
+      }
+    }
   },
   "paths": {
     "/logout": {
@@ -69,7 +82,7 @@
           "200": {
             "description": "Returns success",
             "schema": {
-              "$ref": "#/definitions/_User"
+              "$ref": "#/definitions/User"
             }
           },
           "400": {
@@ -110,7 +123,7 @@
           "200": {
             "description": "Returns success",
             "schema": {
-              "$ref": "#/definitions/_User"
+              "$ref": "#/definitions/User"
             }
           },
           "400": {
