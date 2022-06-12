@@ -47,4 +47,4 @@ do_request({{ api.operationid }}, _Args, Context, _Req) ->
 {% endfor %}
 
 do_request(_OperationId, _Args, _Context, _Req) ->
-    {error, <<"Not Allowed.">>}.
+    {error, forbidden}.

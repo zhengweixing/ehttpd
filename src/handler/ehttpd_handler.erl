@@ -47,7 +47,7 @@ do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _C
             SrcPath = lists:concat(["handler/", Module, ".erl"]),
             SchemaPath = binary_to_list(<<"swagger/swagger_", Mod/binary, ".json">>),
             case create_zip(FileName, [
-                {"ehttpd_plugin/priv/" ++ SchemaPath, jiffy:encode(SWSchema)},
+%%                {"ehttpd_plugin/priv/" ++ SchemaPath, jiffy:encode(SWSchema)},
                 {"ehttpd_plugin/src/" ++ SrcPath, Src}
             ]) of
                 {ok, ZipFile} ->
