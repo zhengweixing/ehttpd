@@ -66,11 +66,9 @@ filter_module(Check) ->
     lists:foldl(Fun, {[], []}, code:get_path()).
 
 check_attributes(Name, Mod, ehttpd_router) ->
-    Fun = string:to_lower(lists:concat([Name, '_route'])),
-    erlang:function_exported(Mod, list_to_atom(Fun), 1);
+    erlang:function_exported(Mod, route, 2);
 check_attributes(Name, Mod, ehttpd_rest) ->
-    Fun = string:to_lower(lists:concat([Name, '_swagger'])),
-    erlang:function_exported(Mod, list_to_atom(Fun), 1).
+    erlang:function_exported(Mod, swagger, 1).
 
 get_module(Dir) ->
     case file:list_dir(Dir) of

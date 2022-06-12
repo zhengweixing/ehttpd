@@ -7,7 +7,7 @@
 -export([swagger_{{ mod }}/0]).
 -export([handle/4]).
 
-{{ name }}_swagger() ->
+swagger({{ name }}) ->
     [
         ehttpd_server:bind(<<"/swagger_{{ mod }}.json">>, ?MODULE, [], priv)
     ].

@@ -77,11 +77,11 @@ dtl_compile(Mod, TplPath, Vals, Opts) ->
     end.
 
 
-generate(_Name, Handlers, Path, AccIn, Hand) ->
+generate(Name, Handlers, Path, AccIn, Hand) ->
     {ok, BaseSchemas} = load_schema(Path, [return_maps]),
     Fun =
         fun(Mod, Acc) ->
-            check_mod_swagger(Mod, Acc, Hand)
+            check_mod_swagger(Name, Mod, Acc, Hand)
         end,
     lists:foldl(Fun, maps:merge(BaseSchemas, AccIn), Handlers).
 
@@ -189,7 +189,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 
-check_mod_swagger(Mod, Schema, Hand) ->
+check_mod_swagger(Name, Mod, Schema, Hand) ->
     F =
         fun(NewSchema, AccSchema) ->
             parse_schema(NewSchema, AccSchema,
@@ -197,7 +197,7 @@ check_mod_swagger(Mod, Schema, Hand) ->
                     Hand(Mod, Path, Method, NewMethodInfo, AccSchemas)
                 end)
         end,
-    case Mod:swagger() of
+    case Mod:swagger(Name) of
         NewSchemas when is_list(NewSchemas) ->
             lists:foldl(F, Schema, NewSchemas);
         NewSchema when is_map(NewSchema) ->
