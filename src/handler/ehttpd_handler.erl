@@ -3,9 +3,9 @@
 -ehttpd_rest(ehttpd).
 
 %% API
--export([swagger/0, handle/4]).
+-export([ehttpd_swagger/0, handle/4]).
 
-swagger() ->
+ehttpd_swagger() ->
     [
         ehttpd_server:bind(<<"/swagger_system.json">>, ?MODULE, [], priv)
     ].

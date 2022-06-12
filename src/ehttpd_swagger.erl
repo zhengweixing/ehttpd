@@ -36,8 +36,7 @@ compile(Name, Mod, Schema, OutPath) when is_map(Schema) ->
             {error, Reason}
     end.
 
-%% 根据swagger动态编译出模块
-compile(Name,  Mod, Schema) ->
+compile(Name, Mod, Schema) ->
     Module = list_to_atom(lists:concat(["ehttpd_", Mod, "_handler"])),
     Hand = fun(Source) -> format_val(Mod, Source) end,
     case read(Name, #{}) of
@@ -54,7 +53,7 @@ compile(Name,  Mod, Schema) ->
                 end,
             NewSchema = parse_schema(Schema, maps:without([<<"paths">>], SWSchema), Fun),
             {TplPath, Vals, Opts} = Hand(NewSchema),
-            case dtl_compile(erlydtl, TplPath, Vals, Opts) of
+            case dtl_compile(erlydtl, TplPath, [{name, Name} | Vals], Opts) of
                 {ok, IoBin} ->
                     {ok, Module, IoBin};
                 {error, Reason} ->

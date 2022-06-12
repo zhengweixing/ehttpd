@@ -1,13 +1,13 @@
 -module(iot_{{ mod }}_handler).
 -behavior(ehttpd_rest).
 
--ehttpd_rest(ehttpd).
+-ehttpd_rest({{ name }}).
 
 %% API
 -export([swagger_{{ mod }}/0]).
 -export([handle/4]).
 
-swagger() ->
+{{ name }}_swagger() ->
     [
         ehttpd_server:bind(<<"/swagger_{{ mod }}.json">>, ?MODULE, [], priv)
     ].

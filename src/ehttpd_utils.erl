@@ -5,10 +5,13 @@
 %% API
 -export([query_table/4, check_module/1]).
 
--define(SYS_APPS, [
+-define(IGNORE_APPS, [
     kernel, sasl, crypto, public_key, asn1, syntax_tools,
     ssl, os_mon, inets, compiler, runtime_tools, redbug,
-    xmerl, sasl
+    xmerl, sasl, stdlib, appmon, eldap, erts, mnesia, inets,
+    goldrush, gproc, snmp, otp_mibs, ssh, hipe, common_test,
+    observer, webtool, xmerl, tools, debugger, eunit, et,
+    wx
 ]).
 
 
@@ -47,7 +50,7 @@ filter_module(Check) ->
             Re = ".+/(.+?)(-.+)?/ebin",
             case re:run(Dir, Re, [{capture, all_but_first, list}]) of
                 {match, [App | _]} ->
-                    case lists:member(list_to_atom(App), ?SYS_APPS) of
+                    case lists:member(list_to_atom(App), ?IGNORE_APPS) of
                         true ->
                             Acc;
                         false ->
@@ -62,12 +65,12 @@ filter_module(Check) ->
         end,
     lists:foldl(Fun, {[], []}, code:get_path()).
 
-check_attributes(ServerName, Mod, ehttpd_router) ->
-    Attributes = [Name || {ehttpd_router, [Name]} <- Mod:module_info(attributes)],
-    lists:member(ServerName, Attributes);
-check_attributes(ServerName, Mod, ehttpd_rest) ->
-    Attributes = [Name || {ehttpd_rest, [Name]} <- Mod:module_info(attributes)],
-    lists:member(ServerName, Attributes).
+check_attributes(Name, Mod, ehttpd_router) ->
+    Fun = string:to_lower(lists:concat([Name, '_route'])),
+    erlang:function_exported(Mod, list_to_atom(Fun), 1);
+check_attributes(Name, Mod, ehttpd_rest) ->
+    Fun = string:to_lower(lists:concat([Name, '_swagger'])),
+    erlang:function_exported(Mod, list_to_atom(Fun), 1).
 
 get_module(Dir) ->
     case file:list_dir(Dir) of
