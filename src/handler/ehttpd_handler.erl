@@ -41,7 +41,7 @@ do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _C
     Deps = [compiler, syntax_tools, erlydtl],
     [application:ensure_all_started(App)|| App <- Deps],
     SWSchema = maps:without([<<"mod">>], Args),
-    case ehttpd_swagger:compile(Name, binary_to_atom(Mod), SWSchema) of
+    case ehttpd_swagger:compile(list_to_atom(Name), binary_to_atom(Mod), SWSchema) of
         {ok, Module, Src} when is_binary(Src) ->
             FileName = "ehttpd_plugin.zip",
             SrcPath = lists:concat(["handler/", Module, ".erl"]),
