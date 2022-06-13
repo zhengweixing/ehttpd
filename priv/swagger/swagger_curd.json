@@ -2,10 +2,10 @@
   "tags": [
     {
       "name": "{{tableName}}",
-      "description": "{{tag}} 操作"
+      "description": "{{desc}}"
     }
   ],
-  "definitions": [
+  "definitions": {
     "{{tableName}}": {
       "type": "object",
       "properties": {
@@ -13,16 +13,20 @@
         "{{ field.name }}": {
           "type": "{{ field.type }}",
           "description": "{{ field.desc }}"
-        }
+        },
         {% endfor %}
+        "id": {
+            "type": "string",
+            "description": "{{tableName}} 的 ID"
+        }
       }
     }
-  ],
+  },
   "paths": {
     "/row/{{tableName}}/{id}": {
       "get": {
-        "summary": "获取 {{tag}} 详情",
-        "description": "根据 ID 获取 {{tag}} 详情",
+        "summary": "获取 {{tableName}} 详情",
+        "description": "根据 ID 获取 {{tableName}} 详情",
         "tags": [
           "{{tableName}}"
         ],
@@ -31,13 +35,13 @@
             "in": "path",
             "name": "id",
             "type": "string",
-            "description": "{{tag}} 的 ID",
+            "description": "{{tableName}} 的 ID",
             "required": true
           }
         ],
         "responses": {
           "200": {
-            "description": "返回 {{tag}} 数据",
+            "description": "返回 {{tableName}} 数据",
             "schema": {
               "$ref": "#/definitions/{{tableName}}"
             }
@@ -69,8 +73,8 @@
         }
       },
       "put": {
-        "summary": "更新 {{tag}}",
-        "description": "通过ID更新 {{tag}}",
+        "summary": "更新 {{tableName}}",
+        "description": "通过ID更新 {{tableName}}",
         "tags": [
           "{{tableName}}"
         ],
@@ -79,7 +83,7 @@
             "in": "path",
             "name": "id",
             "type": "string",
-            "description": "更新 {{tag}} 的 ID",
+            "description": "更新 {{tableName}} 的 ID",
             "required": true
           },
           {
@@ -137,8 +141,8 @@
         }
       },
       "delete": {
-        "summary": "删除 {{tag}}",
-        "description": "通过 ID 删除 {{tag}} 记录",
+        "summary": "删除 {{tableName}}",
+        "description": "通过 ID 删除 {{tableName}} 记录",
         "tags": [
           "{{tableName}}"
         ],
@@ -147,7 +151,7 @@
             "in": "path",
             "name": "id",
             "type": "string",
-            "description": "删除 {{tag}} 的 ID",
+            "description": "删除 {{tableName}} 的 ID",
             "required": true
           }
         ],
@@ -184,7 +188,7 @@
     },
     "/table/{{tableName}}": {
       "get": {
-        "summary": "查询 {{tag}}",
+        "summary": "查询 {{tableName}}",
         "description": "where支持：[$lt, $lte, $gt, $gte, $ne, $in, $nin, $exists, $select, $dontSelect, $all, $regex, $text]",
         "tags": [
           "{{tableName}}"
@@ -238,7 +242,7 @@
         ],
         "responses": {
           "200": {
-            "description": "返回 {{tag}} 记录数",
+            "description": "返回 {{tableName}} 记录数",
             "schema": {
               "type": "object",
               "properties": {
@@ -272,8 +276,8 @@
         }
       },
       "post": {
-        "summary": "新增 {{tag}}",
-        "description": "新增一条 {{tag}} 记录",
+        "summary": "新增 {{tableName}}",
+        "description": "新增一条 {{tableName}} 记录",
         "tags": [
           "{{tableName}}"
         ],
@@ -329,8 +333,8 @@
     },
     "/schema/{{tableName}}": {
       "get": {
-        "summary": "获取 {{tag}} 表的结构",
-        "description": "获取 {{tag}} 表的结构",
+        "summary": "获取 {{tableName}} 表的结构",
+        "description": "获取 {{tableName}} 表的结构",
         "tags": [
           "{{tableName}}"
         ],

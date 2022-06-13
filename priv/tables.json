@@ -1,26 +1,21 @@
 [
   {
     "tableName": "Device",
+    "desc": "设备",
     "fields": [
       {
         "name": "name",
-        "type": "String",
-        "desc": ""
-      },
-      {
-        "name": "devaddr",
-        "type": "String",
-        "required": true,
+        "type": "string",
         "desc": ""
       },
       {
         "name": "status",
-        "type": "Boolean",
+        "type": "boolean",
         "desc": ""
       },
       {
         "name": "isEnable",
-        "type": "Boolean",
+        "type": "boolean",
         "desc": ""
       }
     ]

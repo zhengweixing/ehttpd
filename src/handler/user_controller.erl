@@ -19,13 +19,6 @@ swagger(ehttpd) ->
 handle(OperationID, Args, Context, Req) ->
     Headers = #{},
     case do_request(OperationID, Args, Context, Req) of
-        {error, Reason} ->
-            Err = list_to_binary(io_lib:format("~p", [Reason])),
-            {500, Headers, #{ <<"error">> => Err }};
-        ok ->
-            {200, Headers, #{}, Req};
-        {ok, Res} ->
-            {200, Headers, Res, Req};
         {Status, Res} ->
             {Status, Headers, Res, Req};
         {Status, NewHeaders, Res} ->
@@ -61,4 +54,4 @@ do_request(get_login, _Args, Context, _Req) ->
     {200, Response};
 
 do_request(_OperationId, _Args, _Context, _Req) ->
-    {error, forbidden}.
+    {403, #{ error => forbidden }}.

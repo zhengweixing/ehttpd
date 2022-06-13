@@ -20,12 +20,8 @@ handle(OperationID, Args, Context, Req) ->
     Headers = #{},
     case do_request(OperationID, Args, Context, Req) of
         {error, Reason} ->
-            Err = list_to_binary(io_lib:format("~p", [Reason])),
-            {500, Headers, #{<<"error">> => Err}};
-        ok ->
-            {200, Headers, #{}, Req};
-        {ok, Res} ->
-            {200, Headers, Res, Req};
+            Err = io_lib:format("~p", [Reason]),
+            {500, #{ error => Err }};
         {Status, Res} ->
             {Status, Headers, Res, Req};
         {Status, NewHeaders, Res} ->
@@ -35,8 +31,6 @@ handle(OperationID, Args, Context, Req) ->
     end.
 
 
-%% OperationId:generate_code
-%% POST /iotapi/generate_api
 do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _Context, _Req) ->
     Deps = [compiler, syntax_tools, erlydtl],
     [application:ensure_all_started(App)|| App <- Deps],
@@ -59,12 +53,11 @@ do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _C
                 {error, Reason} ->
                     {error, Reason}
             end;
-        Err ->
-            Err
+        {error, Reason} ->
+            {error, Reason}
     end;
 
-%% OperationId:post_upload
-%% POST /iotapi/upload
+
 do_request(post_upload, #{<<"file">> := FileInfo}, Context, _Req) ->
     case ehttpd_server:run_hook('http.upload', [Context], FileInfo) of
         {error, Reason} ->
