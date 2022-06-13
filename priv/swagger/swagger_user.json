@@ -106,7 +106,7 @@
         ]
       }
     },
-    "/users": {
+    "/user": {
       "get": {
         "summary": "获取用户信息",
         "description": "获取用户信息",

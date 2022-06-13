@@ -28,12 +28,12 @@ handle(OperationID, Args, Context, Req) ->
     end.
 
 
-do_request(get_users_id, _Args, Context, _Req) ->
+do_request(get_user_id, _Args, Context, _Req) ->
     Response = maps:get(check_response, Context, #{}),
     % @todo 自己实现函数
     {200, Response};
 
-do_request(post_users, _Args, Context, _Req) ->
+do_request(post_user, _Args, Context, _Req) ->
     Response = maps:get(check_response, Context, #{}),
     % @todo 自己实现函数
     {200, Response};
