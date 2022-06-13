@@ -37,7 +37,7 @@ compile(Name, Mod, Schema, OutPath) when is_map(Schema) ->
     end.
 
 compile(Name, Mod, Schema) ->
-    Module = list_to_atom(lists:concat(["ehttpd_", Mod, "_handler"])),
+    Module = list_to_atom(lists:concat([Mod, "_controller"])),
     Hand = fun(Source) -> format_val(Mod, Source) end,
     case read(Name, #{}) of
         {ok, SWSchema} ->
@@ -317,7 +317,7 @@ get_priv(Mod, Path) ->
 format_val(Mod, Schema) ->
     {file, Here} = code:is_loaded(?MODULE),
     Dir = filename:dirname(filename:dirname(Here)),
-    Tpl = lists:concat([Dir, "/priv/swagger/erlang_handler.src"]),
+    Tpl = lists:concat([Dir, "/priv/swagger/controller.src"]),
     Paths = maps:values(maps:get(<<"paths">>, Schema, #{})),
     Apis = lists:foldl(
         fun(Methods, Acc) ->

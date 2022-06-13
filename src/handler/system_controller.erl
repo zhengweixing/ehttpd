@@ -1,4 +1,4 @@
--module(ehttpd_handler).
+-module(system_controller).
 -behavior(ehttpd_rest).
 -ehttpd_rest(ehttpd).
 

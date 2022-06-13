@@ -1,14 +1,14 @@
--module(ehttpd_{{ mod }}_handler).
+-module(user_controller).
 -behavior(ehttpd_rest).
 
--ehttpd_rest({{ name }}).
+-ehttpd_rest(ehttpd).
 
 %% API
 -export([swagger/1, handle/4]).
 
-swagger({{ name }}) ->
+swagger(ehttpd) ->
     [
-        ehttpd_server:bind(<<"/swagger_{{ mod }}.json">>, ?MODULE, [], priv)
+        ehttpd_server:bind(<<"/swagger_user.json">>, ?MODULE, [], priv)
     ].
 
 -spec handle(OperationID :: atom(), Args :: map(), Context :: map(), Req :: ehttpd_req:req()) ->
@@ -35,15 +35,30 @@ handle(OperationID, Args, Context, Req) ->
     end.
 
 
-{% for api in apis %}
-%% {{ api.tags }} summary:{{ api.summary }} desc:{{ api.description }}
-%% OperationId:{{ api.operationid }}
-%% {{ api.method }} {{ api.path }}
-do_request({{ api.operationid }}, _Args, Context, _Req) ->
+do_request(get_users_id, _Args, Context, _Req) ->
     Response = maps:get(check_response, Context, #{}),
-    % @todo
+    % @todo 自己实现函数
     {200, Response};
-{% endfor %}
+
+do_request(post_users, _Args, Context, _Req) ->
+    Response = maps:get(check_response, Context, #{}),
+    % @todo 自己实现函数
+    {200, Response};
+
+do_request(post_passwordreset, _Args, Context, _Req) ->
+    Response = maps:get(check_response, Context, #{}),
+    % @todo 自己实现函数
+    {200, Response};
+
+do_request(post_logout, _Args, Context, _Req) ->
+    Response = maps:get(check_response, Context, #{}),
+    % @todo 自己实现函数
+    {200, Response};
+
+do_request(get_login, _Args, Context, _Req) ->
+    Response = maps:get(check_response, Context, #{}),
+    % @todo 自己实现函数
+    {200, Response};
 
 do_request(_OperationId, _Args, _Context, _Req) ->
     {error, forbidden}.

@@ -1,0 +1,28 @@
+[
+  {
+    "tableName": "Device",
+    "fields": [
+      {
+        "name": "name",
+        "type": "String",
+        "desc": ""
+      },
+      {
+        "name": "devaddr",
+        "type": "String",
+        "required": true,
+        "desc": ""
+      },
+      {
+        "name": "status",
+        "type": "Boolean",
+        "desc": ""
+      },
+      {
+        "name": "isEnable",
+        "type": "Boolean",
+        "desc": ""
+      }
+    ]
+  }
+]
