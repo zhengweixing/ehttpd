@@ -13,13 +13,13 @@
      {env, [
          {port, 6080},
          {docroot, "priv/www/"},
-         {sessionExpiration, 1800},
-         {access_control_allow_headers, "Origin, sessionToken, X-Requested-With, Content-Type, Accept"},
+         {swagger, "priv/swagger/swagger-base.json"},
 %%         {cacertfile, "priv/TLS/ca/ca.crt"},
 %%         {certfile, "priv/TLS/server/server.crt"},
 %%         {keyfile, "priv/TLS/server/server.key"},
+         {expire, 1800},
          {debug, true},
-         {swagger, "priv/swagger/swagger-base.json"}
+         {access_control_allow_headers, "Origin, sessionToken, X-Requested-With, Content-Type, Accept, authorization, istoken"}
      ]},
      {mod, {ehttpd_app, []}},
      {registered, [ehttpd_app]}]}.

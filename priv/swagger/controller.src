@@ -12,30 +12,21 @@ swagger({{ name }}) ->
     ].
 
 -spec handle(OperationID :: atom(), Args :: map(), Context :: map(), Req :: ehttpd_req:req()) ->
-    {Status :: ehttpd_req:http_status(), Body :: map()} |
-    {Status :: ehttpd_req:http_status(), Headers :: map(), Body :: map()} |
-    {Status :: ehttpd_req:http_status(), Headers :: map(), Body :: map(), Req :: ehttpd_req:req()}.
+    {Status :: ehttpd_req:http_status(), Data :: map()} |
+    {Status :: ehttpd_req:http_status(), Headers :: map(), Data :: map()} |
+    {Status :: ehttpd_req:http_status(), Headers :: map(), Data :: map(), Req :: ehttpd_req:req()}.
 
 handle(OperationID, Args, Context, Req) ->
-    Headers = #{},
-    case do_request(OperationID, Args, Context, Req) of
-        {Status, Res} ->
-            {Status, Headers, Res, Req};
-        {Status, NewHeaders, Res} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, Req};
-        {Status, NewHeaders, Res, NewReq} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, NewReq}
-    end.
+    do_request(OperationID, Args, Context, Req).
 
 
 {% for api in apis %}
 %% {{ api.tags }} summary:{{ api.summary }} desc:{{ api.description }}
 %% OperationId:{{ api.operationid }}
 %% {{ api.method }} {{ api.path }}
-do_request({{ api.operationid }}, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
+do_request({{ api.operationid }}, Args, Context, _Req) ->
     % @todo
-    {200, Response};
+    {200, #{ params => Args  };
 {% endfor %}
 
 do_request(_OperationId, _Args, _Context, _Req) ->

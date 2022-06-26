@@ -1,4 +1,4 @@
--module(ehttpd_rest_check).
+-module(ehttpd_check).
 -export([check_request/2, check_response/3]).
 
 

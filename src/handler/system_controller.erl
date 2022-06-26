@@ -1,45 +1,38 @@
 -module(system_controller).
 -behavior(ehttpd_rest).
--ehttpd_rest(ehttpd).
+-ehttpd_rest(default).
 
 %% API
 -export([swagger/1, handle/4]).
 
-swagger(ehttpd) ->
+swagger(default) ->
     [
         ehttpd_server:bind(<<"/swagger_system.json">>, ?MODULE, [], priv)
     ].
 
 
 -spec handle(OperationID :: atom(), Args :: map(), Context :: map(), Req :: ehttpd_req:req()) ->
-    {Status :: ehttpd_req:http_status(), Body :: map()} |
-    {Status :: ehttpd_req:http_status(), Headers :: map(), Body :: map()} |
-    {Status :: ehttpd_req:http_status(), Headers :: map(), Body :: map(), Req :: ehttpd_req:req()}.
+    {Status :: ehttpd_req:http_status(), Data :: map()} |
+    {Status :: ehttpd_req:http_status(), Headers :: map(), Data :: map()} |
+    {Status :: ehttpd_req:http_status(), Headers :: map(), Data :: map(), Req :: ehttpd_req:req()}.
 
-handle(OperationID, Args, Context, Req) ->
-    Headers = #{},
-    case do_request(OperationID, Args, Context, Req) of
+handle(OperationID, Args, Context, _Req) ->
+    case do_request(OperationID, Args, Context) of
         {error, Reason} ->
-            Err = io_lib:format("~p", [Reason]),
-            {500, #{ error => Err }};
+            Err = list_to_binary(io_lib:format("~p", [Reason])),
+            {500, #{error => Err}};
         {Status, Res} ->
-            {Status, Headers, Res, Req};
-        {Status, NewHeaders, Res} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, Req};
-        {Status, NewHeaders, Res, NewReq} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, NewReq}
+            {Status, Res}
     end.
 
 
-do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _Context, _Req) ->
-    Deps = [compiler, syntax_tools, erlydtl],
-    [application:ensure_all_started(App)|| App <- Deps],
+do_request(post_generate_api, #{<<"mod">> := Mod} = Args, _Context) ->
     SWSchema = maps:without([<<"mod">>], Args),
-    case ehttpd_swagger:compile(binary_to_atom(Name), binary_to_atom(Mod), SWSchema) of
+    case ehttpd_swagger:compile(default, binary_to_atom(Mod), SWSchema) of
         {ok, Module, Src} when is_binary(Src) ->
             FileName = "ehttpd_plugin.zip",
             SrcPath = lists:concat(["handler/", Module, ".erl"]),
-            SchemaPath = binary_to_list(<<"swagger/swagger_", Mod/binary, ".json">>),
+%%            SchemaPath = binary_to_list(<<"swagger/swagger_", Mod/binary, ".json">>),
             case create_zip(FileName, [
 %%                {"ehttpd_plugin/priv/" ++ SchemaPath, jiffy:encode(SWSchema)},
                 {"ehttpd_plugin/src/" ++ SrcPath, Src}
@@ -58,13 +51,71 @@ do_request(post_generate_api, #{<<"name">> := Name, <<"mod">> := Mod} = Args, _C
     end;
 
 
-do_request(post_upload, #{<<"file">> := FileInfo}, Context, _Req) ->
-    case ehttpd_server:run_hook('http.upload', [Context], FileInfo) of
-        {error, Reason} ->
-            {error, Reason};
-        {ok, FileInfo1} ->
-            {200, FileInfo1}
-    end.
+do_request(post_upload, #{<<"file">> := FileInfo}, Context) ->
+    {ok, FileInfo1} = ehttpd_hook:run('file.upload', [Context], FileInfo),
+    {200, FileInfo1};
+
+do_request(get_monitor_cache, _Args, _Context) ->
+    Info = get_cache_info(),
+    {200, #{data => Info, code => 200}};
+
+do_request(get_monitor_server, _Args, _Context) ->
+    Info = get_server_info(),
+    {200, #{data => Info, code => 200}}.
+
+
+get_server_info() ->
+    #{
+        cpu => #{
+            cpuNum => 2,
+            free => 97.46,
+            sys => 0.51,
+            total => 197000,
+            used => 1.52,
+            wait => 0.51
+        },
+        jvm => #{
+            free => 295.48,
+            home => <<"/">>,
+            inputArgs => <<>>,
+            max => 1008,
+            name => <<"Java HotSpot(TM) 64-Bit Server VM">>,
+            runTime => <<"2天0小时54分钟"/utf8>>,
+            startTime => <<"2022-06-20 08:58:26">>,
+            total => 509.5,
+            usage => 42.01,
+            used => 214.02,
+            version => <<"1.8.0_111">>
+        },
+        mem => #{
+            free => 3.88,
+            total => 7.56,
+            usage => 48.71,
+            used => 3.68
+        },
+        sys => #{
+            computerIp => <<"">>,
+            computerName => <<"">>,
+            osArch => <<"amd64">>,
+            osName => <<"Linux">>
+        },
+        sysFiles => [
+            #{
+                dirName => <<"/">>,
+                free => <<"21.6 GB">>,
+                sysTypeName => <<"ext4">>,
+                total => <<"39.2 GB">>,
+                typeName => <<"/">>,
+                usage => 44.95,
+                used => <<"17.6 GB">>
+            }
+        ]
+    }.
+
+get_cache_info() ->
+    #{
+
+    }.
 
 
 create_zip(FileName, Fs) ->

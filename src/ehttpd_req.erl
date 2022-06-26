@@ -3,7 +3,7 @@
 
 %% API
 -export([get_value/3, get_qs/2, get_qs/3, qs/1, parse_qs/1, parse_qs/2, header/2, header/3, headers/1, headers/2, path/1, host/1, binding/2, method/1, read_body/1, read_body/2, set_cookie/4]).
--export([to_lower/1, to_lower/2]).
+%%-export([to_lower/1, to_lower/2]).
 -export([reply/2,reply/3,reply/4]).
 
 
@@ -67,8 +67,7 @@ header(Name, Req, Default) ->
         Value -> Value
     end.
 
-header(Name0, Req) ->
-    Name = to_lower(Name0),
+header(Name, Req) ->
     cowboy_req:header(Name, Req).
 
 headers(Req) ->
@@ -137,31 +136,3 @@ reply(Status, Headers, Body, Req) ->
     cowboy_req:reply(Status, Headers, Body, Req).
 reply(Status, Headers, Req) ->
     cowboy_req:reply(Status, Headers, Req).
-
-
-to_lower(V, Opts) ->
-    V1 = to_lower(V),
-    case proplists:get_value(return, Opts) of
-        binary ->
-            case is_list(V1) of
-                true -> list_to_binary(V1);
-                false -> V1
-            end;
-        list ->
-            case is_binary(V1) of
-                true -> binary_to_list(V1);
-                false -> V1
-            end;
-        atom ->
-            case V1 of
-                _ when is_binary(V1) -> binary_to_atom(V1);
-                _ when is_list(V1) -> list_to_atom(V1)
-            end
-    end.
-
-
-to_lower(V) when is_list(V) ->
-    string:to_lower(V);
-to_lower(V) when is_binary(V) ->
-    list_to_binary(string:to_lower(binary_to_list(V))).
-

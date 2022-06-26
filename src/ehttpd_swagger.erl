@@ -7,7 +7,7 @@
 
 %% API
 -export([start_link/0]).
--export([generate/5, write/3, read/2, list/0, parse_schema/3, load_schema/3, compile/4, compile/3]).
+-export([generate/4, write/2, read/2, list/0, parse_schema/3, load_schema/3, compile/4, compile/3]).
 -record(api, {authorize, base_path, check_request, check_response, consumes, description, method, operationid, path, produces, summary, tags, version}).
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -77,15 +77,17 @@ dtl_compile(Mod, TplPath, Vals, Opts) ->
     end.
 
 
-generate(Name, Handlers, Path, AccIn, Hand) ->
+generate(Name, Handlers, Path, Hand) ->
     {ok, BaseSchemas} = load_schema(Path, [return_maps]),
     Fun =
         fun(Mod, Acc) ->
             check_mod_swagger(Name, Mod, Acc, Hand)
         end,
-    lists:foldl(Fun, maps:merge(BaseSchemas, AccIn), Handlers).
+    lists:foldl(Fun, BaseSchemas, Handlers).
 
-write(Name, Version, Schema) ->
+write(Name, Schema) ->
+    Info = maps:get(<<"info">>, Schema, #{}),
+    Version = maps:get(<<"version">>, Info),
     gen_server:call(?SERVER, {write, Name, Version, Schema}).
 
 read(Name, Config) ->
@@ -231,27 +233,22 @@ parse_schema(NewSchema, AccSchema, Hand) ->
 do_method_fun(Path, Method, MethodInfo, SWSchemas, Hand) ->
     OperationId = ehttpd_router:get_operation_id(Path, Method),
     Paths = maps:get(<<"paths">>, SWSchemas, #{}),
-    MethodAcc = maps:get(Path, Paths, #{}),
-    case maps:get(Method, MethodAcc, no) of
-        no ->
-            PreMethodInfo = MethodInfo#{
-                <<"operationId">> => OperationId
+    PreMethodInfo = MethodInfo#{
+        <<"operationId">> => OperationId
 %%                <<"externalDocs">> => #{
 %%                    <<"url">> => get_doc_path(BinOpId)
 %%                }
-            },
-            NewMethodInfo = Hand(Path, Method, PreMethodInfo, SWSchemas),
-            SWSchemas#{
-                <<"paths">> => Paths#{
-                    Path => MethodAcc#{
-                        Method => NewMethodInfo
-                    }
-                }
-            };
-        _ ->
-            logger:warning("Path is repeat, ~p~n", [<<Method/binary, " ", Path/binary>>]),
-            SWSchemas
-    end.
+    },
+    Method1 = list_to_binary(string:to_upper(binary_to_list(Method))),
+    NewPath = Hand(Path, Method1, PreMethodInfo, SWSchemas),
+    MethodAcc = maps:get(NewPath, Paths, #{}),
+    SWSchemas#{
+        <<"paths">> => Paths#{
+            NewPath => MethodAcc#{
+                Method => maps:without([<<"extend">>, <<"permission">>], MethodInfo)
+            }
+        }
+    }.
 
 
 get_path(Path, Map) when is_list(Path) ->
@@ -261,7 +258,7 @@ get_path(Path0, Map) when is_binary(Path0) ->
     F =
         fun
             (#{<<"name">> := Name, <<"in">> := <<"path">>}, Acc) ->
-                case re:run(Path0, <<"(\\{", Name/binary, "\\})">>, [global, {capture, all_but_first, binary}]) of
+                case re:run(Path0, <<"(\{", Name/binary, "\})">>, [global, {capture, all_but_first, binary}]) of
                     {match, _PS} -> Acc;
                     nomatch -> [<<"{", Name/binary, "}">> | Acc]
                 end;

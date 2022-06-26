@@ -3,7 +3,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0, get_with_ttl/1, set_with_ttl/3, delete/1, match/1, lookup/1, insert/2]).
+-export([start_link/0, get_with_ttl/1, set_with_ttl/3, delete_with_ttl/1, delete/1, match/1, lookup/1, insert/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -37,6 +37,10 @@ set_with_ttl(Key, Value, TTL) ->
     Now = os:system_time(second),
     insert({ttl, Key}, {Now + TTL, Value}).
 
+-spec delete_with_ttl(Key) -> true when
+    Key :: any().
+delete_with_ttl(Key) ->
+    delete({ttl, Key}).
 
 match(Pattern) ->
     case ets:match(?DB, Pattern) of

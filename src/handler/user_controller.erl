@@ -1,12 +1,12 @@
 -module(user_controller).
 -behavior(ehttpd_rest).
 
--ehttpd_rest(ehttpd).
+-ehttpd_rest(default).
 
 %% API
 -export([swagger/1, handle/4]).
 
-swagger(ehttpd) ->
+swagger(default) ->
     [
         ehttpd_server:bind(<<"/swagger_user.json">>, ?MODULE, [], priv)
     ].
@@ -17,41 +17,27 @@ swagger(ehttpd) ->
     {Status :: ehttpd_req:http_status(), Headers :: map(), Body :: map(), Req :: ehttpd_req:req()}.
 
 handle(OperationID, Args, Context, Req) ->
-    Headers = #{},
-    case do_request(OperationID, Args, Context, Req) of
-        {Status, Res} ->
-            {Status, Headers, Res, Req};
-        {Status, NewHeaders, Res} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, Req};
-        {Status, NewHeaders, Res, NewReq} ->
-            {Status, maps:merge(Headers, NewHeaders), Res, NewReq}
-    end.
+    do_request(OperationID, Args, Context, Req).
 
+do_request(post_register, Args, Context, _Req) ->
+    {ok, Result} = ehttpd_hook:run('user.register', [Args, Context], #{}),
+    {200, Result};
 
-do_request(get_user_id, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
-    % @todo 自己实现函数
-    {200, Response};
+do_request(post_logout, Args, Context, _Req) ->
+    {ok, Result} = ehttpd_hook:run('user.logout', [Args, Context], #{}),
+    {200, Result};
 
-do_request(post_user, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
-    % @todo 自己实现函数
-    {200, Response};
+do_request(post_login, #{ <<"username">> := UserName, <<"password">> := Password }, _Context, _Req) ->
+    {ok, Result} = ehttpd_hook:run('user.login', [UserName, Password], #{}),
+    {200, Result};
 
-do_request(post_passwordreset, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
-    % @todo 自己实现函数
-    {200, Response};
+do_request(get_getrouters, _Args, #{user := UserInfo}, _Req) ->
+    {ok, Result} = ehttpd_hook:run('user.get_routers', [UserInfo], #{}),
+    {200, Result};
 
-do_request(post_logout, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
-    % @todo 自己实现函数
-    {200, Response};
+do_request(get_getinfo, _Args, Context, _Req) ->
+    {ok, Result} = ehttpd_hook:run('user.get_info', [Context], #{}),
+    {200, Result};
 
-do_request(get_login, _Args, Context, _Req) ->
-    Response = maps:get(check_response, Context, #{}),
-    % @todo 自己实现函数
-    {200, Response};
-
-do_request(_OperationId, _Args, _Context, _Req) ->
-    {403, #{ error => forbidden }}.
+do_request(get_captchaimage, _Args, _Context, _Req) ->
+    {200, #{ captchaOnOff => false, img => <<>> }}.

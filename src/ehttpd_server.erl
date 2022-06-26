@@ -1,22 +1,94 @@
 -module(ehttpd_server).
+-behaviour(gen_server).
 -include("ehttpd.hrl").
--export([start/2, stop/1, bind/4, docroot/0]).
--export([add_hook/2, run_hook/3, reload_paths/2, get_env/1, get_env/2, get_path/2]).
+-export([start/3, stop/1, bind/4, reload_paths/2, rewrite/2, get_env/3]).
+-export([start_link/3, init/1, handle_call/3, handle_info/2, handle_cast/2, code_change/3, terminate/2]).
+
+-record(state, { name }).
+-define(SERVER(Name), list_to_atom(lists:concat(['http_', Name]))).
+
+-type env() :: #{
+    docroot => binary(),
+    swagger => binary(),
+    cacertfile => binary(),
+    certfile => binary(),
+    keyfile => binary()
+}.
+
+-spec start(Name :: atom(), Port :: integer(), Env :: env()) ->
+    supervisor:startchild_ret().
+start(Name, Port, Env) ->
+    Child = {Name, {?MODULE, start_link, [Name, Port, Env]}, permanent, 5000, worker, [?MODULE]},
+    supervisor:start_child(ehttpd_sup, Child).
+
+-spec stop(Name :: atom()) -> ok.
+stop(Name) ->
+    gen_server:call(?SERVER(Name), stop).
+
+%% add path
+bind(Path, Mod, _Options, priv) ->
+    case ehttpd_swagger:load_schema(Mod, Path, [return_maps]) of
+        {ok, Schemas} ->
+            Schemas;
+        {error, Reason} ->
+            throw({error, Reason})
+    end.
+
+reload_paths(Name, Env) ->
+    Dispatch = get_dispatch(Name, Env),
+    cowboy:set_env(Name, dispatch, Dispatch).
+
+get_env(Name, Key, Default) ->
+    case ehttpd_cache:lookup({Name, env}) of
+        {ok, Env} ->
+            maps:get(Key, Env, Default);
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 
-start(Name, Env) ->
-    #{
-        port := Port
-    } = Env,
-    ExtraOpts = maps:get(cowboy_extra_opts, Env, []),
-    DefaultOpts = #{
+start_link(Name, Port, Env) ->
+    gen_server:start_link({local, ?SERVER(Name)}, ?MODULE, [Name, Port, Env], []).
+
+
+init([Name, Port, Env]) ->
+    NewEnv = format_env(Env),
+    load_rewrite(Name, NewEnv),
+    case start_server(Name, Port, NewEnv) of
+        {ok, _Pid} ->
+            ehttpd_cache:insert({Name, env}, NewEnv),
+            {ok, #state{name = Name}};
+        {error, Reason} ->
+            {stop, Reason}
+    end.
+
+handle_call(stop, _From, #state{name = Name} = State) ->
+    Reply = cowboy:stop_listener(Name),
+    ehttpd_cache:delete({Name, env}),
+    {stop, normal, Reply, State};
+
+handle_call(_Request, _From, State) ->
+    {reply, ok, State}.
+
+handle_cast(_Request, State) ->
+    {noreply, State}.
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+terminate(_Reason, _State) ->
+    ok.
+
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+
+start_server(Name, Port, Env) ->
+    ProtoOpts = #{
         env => #{
-            dispatch => get_routes(Name, Env)
+            dispatch => get_dispatch(Name, Env)
         }
     },
-    Deps = [cowlib, ranch, cowboy],
-    [application:ensure_all_started(App)|| App <- Deps],
-    ProtoOpts = get_config(ExtraOpts, DefaultOpts),
     TransOpts = [{port, Port}],
     SSL = maps:with([cacertfile, certfile, keyfile], Env),
     case maps:size(SSL) > 0 of
@@ -26,132 +98,70 @@ start(Name, Env) ->
             cowboy:start_clear(Name, TransOpts, ProtoOpts)
     end.
 
-stop(Name) ->
-    cowboy:stop_listener(Name).
-
-
-reload_paths(Name, Env) ->
-    Dispatch = get_routes(Name, Env),
-    cowboy:set_env(Name, dispatch, Dispatch).
-
-
--spec add_hook(Key :: atom(), {Mod :: module(), Fun :: atom()}) -> true.
-add_hook(Key, {Mod, Fun}) ->
-    case ehttpd_cache:lookup(Key) of
-        {error, notfound} ->
-            ehttpd_cache:insert(Key, [{Mod, Fun}]);
-        {ok, Hooks} ->
-            case lists:member({Mod, Fun}, Hooks) of
-                true ->
-                    true;
-                false ->
-                    ehttpd_cache:insert(Key, [{Mod, Fun} | Hooks])
-            end
-    end.
-
--spec run_hook(Key :: atom(), Args :: list(), Acc :: any()) -> {ok, Acc1 :: any()} | {error, Reason :: any()}.
-run_hook(Key, Args, Acc) ->
-    case ehttpd_cache:lookup(Key) of
-        {error, notfound} ->
-            {ok, Acc};
-        {ok, Hooks} ->
-            run_hook_foldl(Hooks, Args, Acc)
-    end.
-
-run_hook_foldl([], _, Acc) -> {ok, Acc};
-run_hook_foldl([{Mod, Fun} | Hooks], Args, Acc) ->
-    case apply(Mod, Fun, Args ++ [Acc]) of
-        {error, Reason} ->
-            {error, Reason};
-        {stop, Acc1} ->
-            {ok, Acc1};
-        {ok, Acc1} ->
-            run_hook_foldl(Hooks, Args, Acc1)
-    end.
-
-%% 动态加入路径
-bind(Path, Mod, _Options, priv) ->
-    case ehttpd_swagger:load_schema(Mod, Path, [{labels, binary}, return_maps]) of
-        {ok, Schemas} ->
-            Schemas;
-        {error, Reason} ->
-            throw({error, Reason})
-    end;
-bind(Path, _Mod, Options, MetaData) ->
-    #{
-        <<"definitions">> => proplists:get_value(<<"definitions">>, Options, #{}),
-        <<"paths">> => #{
-            Path => MetaData
-        }
-    }.
-
-docroot() ->
-    get_path(?APP, docroot).
-
-get_config([], Opts) ->
-    Opts;
-get_config([{env, Env} | Rest], Opts) ->
-    OldEnv = maps:get(env, Opts, #{}),
-    OldDispatch = maps:get(dispatch, OldEnv, []),
-    NewDisPatch = maps:get(dispatch, Env, []),
-    DisPatch = lists:concat([OldDispatch, NewDisPatch]),
-    NewEnv = maps:merge(OldEnv, maps:without([dispatch], Env)),
-    get_config(Rest, Opts#{env => NewEnv#{dispatch => DisPatch}});
-get_config([{Key, Value} | Rest], Opts) ->
-    get_config(Rest, Opts#{Key => Value}).
-
-
-get_routes(Name, #{docroot := DocRoot}) ->
-    Dispatch = ehttpd_router:get_paths(Name, DocRoot),
+get_dispatch(Name, Env) ->
+    Dispatch = ehttpd_router:get_paths(Name, Env),
     cowboy_router:compile([{'_', Dispatch}]).
 
 
-get_env(App) ->
-    lists:foldl(
-        fun(Key, Acc) ->
-            case get_env(App, Key) of
-                undefined -> Acc;
-                Value -> Acc#{Key => Value}
-            end
-        end, #{}, [port, docroot, acceptors, cacertfile, certfile, keyfile]).
-get_env(App, Key) when Key == docroot; Key == cacertfile; Key == certfile; Key == keyfile ->
-    get_path(App, Key);
-get_env(App, Key) ->
-    get_env_value(App, Key).
+-spec format_env(Env) -> Env when
+    Env :: env().
+format_env(Env) ->
+    maps:fold(fun format_env/3, #{}, Env).
 
+-spec format_env(Key :: atom(), Value :: any(), Acc) -> Acc when
+    Acc :: map().
+format_env(Key, Value, Acc) when
+    Key == swagger;
+    Key == docroot;
+    Key == cacertfile;
+    Key == certfile;
+    Key == keyfile ->
+    Acc#{Key => format_path(Value)};
+format_env(Key, Value, Acc) ->
+    Acc#{Key => Value}.
 
-get_path(App, Key) ->
-    case get_env_value(App, Key) of
-        undefined ->
-            undefined;
+-spec format_path(Path) -> Path when
+    Path :: string().
+format_path(Value) ->
+    case Value of
         "app/" ++ Path ->
-            [TargetApp, "priv/" ++ Path1] = string:split(Path, "/"),
-            Dir = code:priv_dir(list_to_atom(TargetApp)),
-            to_path(filename:join(Dir, Path1));
+            [App, "priv/" ++ Path1] = string:split(Path, "/"),
+            Dir = code:priv_dir(list_to_atom(App)),
+            filename:join([Dir, Path1]);
         "priv/" ++ _ = Path ->
             {file, Here} = code:is_loaded(?MODULE),
             Dir = filename:dirname(filename:dirname(Here)),
-            to_path(filename:join([Dir, Path]));
+            filename:join([Dir, Path]);
         Path ->
-            to_path(Path)
+            Path
     end.
 
-get_env_value(App, Key) ->
-    case application:get_env(App, Key) of
-        undefined -> undefined;
-        {ok, ""} -> undefined;
-        {ok, <<>>} -> undefined;
-        {ok, Value} -> Value
+-spec load_rewrite(Name :: atom(), Env :: env()) -> boolean().
+load_rewrite(Name, #{ docroot := Root }) ->
+    Path = filename:join([Root, "rewrite.conf"]),
+    case file:read_file(Path) of
+        {ok, Data} ->
+            Opts = [global, multiline, {capture, all_but_first, binary}],
+            case re:run(Data, <<"^RewriteRule\s+([^\s]+)\s+([^\s\n]+)">>, Opts) of
+                nomatch -> false;
+                {match, Match} ->
+                    ehttpd_cache:insert({Name, rewrite}, Match)
+            end;
+        _ ->
+            false
     end.
 
+-spec rewrite(Name :: atom(), Path) -> Path when
+    Path :: binary().
+rewrite(Name, Path) ->
+    case ehttpd_cache:lookup({Name, rewrite}) of
+        {error, notfound} ->
+            Path;
+        {ok, Rules} ->
+            rewrite_path(Rules, Path)
+    end.
 
-to_path(Path) when is_list(Path) ->
-    to_path(list_to_binary(Path), []);
-to_path(Path) ->
-    to_path(Path, []).
-to_path(<<"../", Path/binary>>, Acc) ->
-    to_path(Path, [<<"../">> | Acc]);
-to_path(Path, Acc) ->
-    {ok, Cwd} = file:get_cwd(),
-    Path2 = lists:foldl(fun(<<"../">>, Path1) -> filename:dirname(Path1) end, Cwd, Acc),
-    binary_to_list(filename:join([Path2, Path])).
+rewrite_path([], Path) -> Path;
+rewrite_path([[Re, Replacement] | Rules], Path) ->
+    NewPath = re:replace(Path, Re, Replacement, [{return, binary}]),
+    rewrite_path(Rules, NewPath).

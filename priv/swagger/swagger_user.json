@@ -1,7 +1,7 @@
 {
   "tags": [
     {
-      "name": "User",
+      "name": "login",
       "description": "用户操作"
     }
   ],
@@ -23,16 +23,10 @@
   "paths": {
     "/logout": {
       "post": {
-        "security": [],
         "summary": "退出登录",
         "description": "退出登录",
+        "security": [],
         "parameters": [
-          {
-            "in": "header",
-            "name": "sessionToken",
-            "required": true,
-            "type": "string"
-          }
         ],
         "consumes": [
           "*"
@@ -55,27 +49,36 @@
           }
         },
         "tags": [
-          "User"
+          "login"
         ]
       }
     },
     "/login": {
-      "get": {
-        "security": [],
+      "post": {
         "summary": "用户登录",
         "description": "用户登录",
+        "security": [],
         "parameters": [
           {
-            "in": "query",
-            "name": "username",
+            "in": "body",
+            "name": "body",
+            "description": "帐号信息",
             "required": true,
-            "type": "string"
-          },
-          {
-            "in": "query",
-            "name": "password",
-            "required": true,
-            "type": "string"
+            "schema": {
+              "type": "object",
+              "properties":{
+                "username": {
+                  "name": "username",
+                  "required": true,
+                  "type": "string"
+                },
+                "password": {
+                  "name": "password",
+                  "required": true,
+                  "type": "string"
+                }
+              }
+            }
           }
         ],
         "responses": {
@@ -102,51 +105,15 @@
           }
         },
         "tags": [
-          "User"
+          "login"
         ]
       }
     },
-    "/user": {
-      "get": {
-        "summary": "获取用户信息",
-        "description": "获取用户信息",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "description": "获取用户信息",
-            "required": true,
-            "type": "string"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Returns success",
-            "schema": {
-              "$ref": "#/definitions/User"
-            }
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "401": {
-            "description": "Unauthorized"
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "500": {
-            "description": "Server Internal error"
-          }
-        },
-        "tags": [
-          "User"
-        ]
-      },
+    "/register": {
       "post": {
-        "security": [],
         "summary": "用户注册",
         "description": "用户注册",
+        "security": [],
         "parameters": [
           {
             "in": "body",
@@ -205,36 +172,16 @@
           }
         },
         "tags": [
-          "User"
+          "login"
         ]
       }
     },
-    "/passwordReset": {
-      "post": {
-        "security": [],
-        "summary": "重置密码",
-        "description": "重置密码",
-        "parameters": [
-          {
-            "in": "body",
-            "name": "account",
-            "description": "帐号绑定的邮箱/手机号码,填入绑定的邮箱或手机号",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "description": "邮箱",
-                  "type": "string"
-                },
-                "phone": {
-                  "description": "手机号码",
-                  "type": "string"
-                }
-              }
-            }
-          }
-        ],
+    "/getInfo": {
+      "get": {
+        "summary": "获取用户信息",
+        "description": "获取用户信息",
+        "parameters": [],
+        "permission": "system:user:info",
         "responses": {
           "201": {
             "description": "Returns success"
@@ -253,7 +200,63 @@
           }
         },
         "tags": [
-          "User"
+          "login"
+        ]
+      }
+    },
+    "/getRouters": {
+      "get": {
+        "summary": "获取路由信息",
+        "description": "获取路由信息",
+        "parameters": [],
+        "permission": "system:user:router",
+        "responses": {
+          "201": {
+            "description": "Returns success"
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "login"
+        ]
+      }
+    },
+    "/captchaImage": {
+      "get": {
+        "summary": "获取验证码",
+        "description": "获取验证码",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Returns success"
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "login"
         ]
       }
     }

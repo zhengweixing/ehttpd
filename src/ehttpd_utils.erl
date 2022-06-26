@@ -3,7 +3,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 %% API
--export([query_table/4, check_module/1]).
+-export([md5/1, check_module/1]).
 
 -define(IGNORE_APPS, [
     kernel, sasl, crypto, public_key, asn1, syntax_tools,
@@ -14,29 +14,19 @@
     wx
 ]).
 
+md5(V) ->
+    list_to_binary(lists:flatten([io_lib:format("~2.16.0b", [C]) || <<C>> <= erlang:md5(V)])).
 
-query_table(Tab, PageNo, PageSize, RowFun) ->
-    Qh = qlc:q([R || R <- ets:tab2list(Tab)]),
-    Cursor = qlc:cursor(Qh),
-    case PageNo > 1 of
-        true -> qlc:next_answers(Cursor, (PageNo - 1) * PageSize);
-        false -> ok
-    end,
-    Rows = qlc:next_answers(Cursor, PageSize),
-    qlc:delete_cursor(Cursor),
-    [RowFun(Row) || Row <- Rows].
-
-
-check_module(Name) ->
+check_module(_Name) ->
     Fun =
         fun(Mod, {Handlers, Routers}) ->
             Handlers1 =
-                case check_attributes(Name, Mod, ehttpd_rest) of
+                case check_attributes(Mod, ehttpd_rest) of
                     false -> Handlers;
                     true -> [Mod | Handlers]
                 end,
             Routers1 =
-                case check_attributes(Name, Mod, ehttpd_router) of
+                case check_attributes(Mod, ehttpd_router) of
                     true -> [Mod | Routers];
                     false -> Routers
                 end,
@@ -65,9 +55,9 @@ filter_module(Check) ->
         end,
     lists:foldl(Fun, {[], []}, code:get_path()).
 
-check_attributes(Name, Mod, ehttpd_router) ->
+check_attributes(Mod, ehttpd_router) ->
     erlang:function_exported(Mod, route, 2);
-check_attributes(Name, Mod, ehttpd_rest) ->
+check_attributes(Mod, ehttpd_rest) ->
     erlang:function_exported(Mod, swagger, 1).
 
 get_module(Dir) ->

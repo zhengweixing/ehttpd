@@ -2,8 +2,8 @@
 -include("ehttpd.hrl").
 
 %% API
--export([path/0, get_paths/2, get_state/1, parse_path/6]).
--export([get_state_by_operation/1, get_operation_id/2]).
+-export([path/1, get_paths/2, get_state/2, parse_path/6]).
+-export([get_operation_id/2]).
 
 %% Static Callback
 -export([init/2]).
@@ -17,88 +17,82 @@
 
 
 %% 获取路径
-get_paths(Name, DocRoot) ->
+get_paths(Name, Env) ->
     DefRoutes = [
-        {"/mod/:Mod/:Fun", ?MODULE, mod},
         {"/swaggers", ?MODULE, swagger_list},
         {"/swagger/:Name", ?MODULE, swagger},
-        {"/[...]/", ?MODULE, {index, DocRoot}},
-        {"/[...]", ?MODULE, {dir, DocRoot, []}}
+        {"/[...]/", ?MODULE, {index, Env}},
+        {"/[...]", ?MODULE, {dir, Env, []}}
     ],
     {Handlers, Routers} = ehttpd_utils:check_module(Name),
-    Routers1 = lists:concat([Router:route(Name, #{ docroot => DocRoot })|| Router <- Routers]),
-    BasePath = ehttpd_server:get_path(ehttpd, swagger),
-    lists:concat([get_swagger_routes(Name, Handlers, BasePath), Routers1 ++ DefRoutes]).
+    Routers1 = lists:concat([Router:route(Name, Env)|| Router <- Routers]),
+    lists:concat([get_routes_by_swagger(Name, Handlers, Env), Routers1 ++ DefRoutes]).
 
-path() ->
-    ehttpd_cache:match({{'$1', router}, '$2'}).
+path(Name) ->
+    ehttpd_cache:match({{'$1', Name, router}, '$2'}).
 
-get_swagger_routes(Name, Handlers, BasePath) ->
+get_routes_by_swagger(Name, Handlers, #{ swagger := BasePath  }) ->
     Fun =
         fun(Mod, Path, Method, MethodInfo, SWSchema) ->
-            Routes = parse_path(Mod, Path, Method, MethodInfo, SWSchema, #{}),
-            NewRoutes =
-                lists:foldl(
-                    fun({RealPath, RestMod, State}, Acc) ->
-                        case lists:keyfind(RealPath, 1, Acc) of
-                            {RealPath, RestMod, OldState} ->
-                                NewOAcc = lists:keydelete(RealPath, 1, Acc),
-                                NewState = maps:merge(OldState, State),
-                                [{RealPath, RestMod, NewState} | NewOAcc];
-                            false ->
-                                [{RealPath, RestMod, State} | Acc]
-                        end
-                    end, get(routes), Routes),
-            put(routes, NewRoutes),
-            maps:without([<<"basePath">>], MethodInfo)
+            create_route(Name, Mod, Path, Method, MethodInfo, SWSchema)
         end,
-    put(routes, []),
-    SWSchema = ehttpd_swagger:generate(Name, Handlers, BasePath, #{}, Fun),
-    Info = maps:get(<<"info">>, SWSchema, #{}),
-    Version = maps:get(<<"version">>, Info),
-    ehttpd_swagger:write(Name, Version, SWSchema),
+    SWSchema = ehttpd_swagger:generate(Name, Handlers, BasePath, Fun),
+    ehttpd_swagger:write(Name, SWSchema),
     erase(routes).
 
-parse_path(Mod, Path, Method, MethodInfo, SWSchema, Init) ->
-    NewPath = re:replace(Path, <<"(\\{([^\\}]+)\\})">>, <<":\\2">>, [global, {return, binary}]),
-    NewMethod = list_to_binary(string:to_upper(binary_to_list(Method))),
-    BasePath = maps:get(<<"basePath">>, SWSchema),
-    Info = maps:get(<<"info">>, SWSchema, #{}),
+create_route(Name, Mod, Path0, Method, MethodInfo, SWSchema) ->
+    Acc = case get(routes) of
+              undefined -> [];
+              Value -> Value
+          end,
+    NewPath = ehttpd_server:rewrite(Name, Path0),
+    Path = re:replace(NewPath, <<"(\{([^\}]+)\})">>, <<":\\2">>, [global, {return, binary}]),
+    {RealPath, State} = parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema),
+    NewRoutes = case lists:keyfind(RealPath, 1, Acc) of
+                    {RealPath, RestMod, OldState} ->
+                        NewAcc = lists:keydelete(RealPath, 1, Acc),
+                        NewState = maps:merge(OldState, State),
+                        [{RealPath, RestMod, NewState} | NewAcc];
+                    false ->
+                        [{RealPath, ehttpd_rest, State} | Acc]
+                end,
+    put(routes, NewRoutes),
+    NewPath.
+
+
+parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema) ->
     OperationId = maps:get(<<"operationId">>, MethodInfo),
-    Config = Init#{
-        base_path => BasePath,
-        version => maps:get(<<"version">>, Info),
-        operationid => OperationId,
+    Extend = maps:get(<<"extend">>, MethodInfo, #{}),
+    Permission = maps:get(<<"permission">>, MethodInfo, undefined),
+    Config = #{
+        extend => Extend,
+        rule => Permission,
         authorize => get_security(MethodInfo, SWSchema),
         consumes => get_consumes(MethodInfo, SWSchema),
         produces => get_produces(MethodInfo, SWSchema),
         check_request => get_check_request(MethodInfo, SWSchema),
         check_response => get_check_response(MethodInfo, SWSchema)
     },
-    RealPaths =
-        case maps:get(<<"basePath">>, MethodInfo, no) of
-            no ->
-                [url_join([BasePath, NewPath])];
-            MyBasePath ->
-                [url_join([MyBasePath, NewPath]), url_join([BasePath, NewPath])]
-        end,
-    {ok, Id} = set_state(OperationId, Config#{ logic_handler => Mod }),
+    BasePath = maps:get(<<"basePath">>, SWSchema, <<>>),
+    set_state(Name, OperationId, Config),
     State = #{
+        name => Name,
         logic_handler => Mod,
-        NewMethod => Id
+        Method => OperationId
     },
-    [{Path1, ehttpd_rest, State} || Path1 <- RealPaths].
+    RealPath = <<BasePath/binary, Path/binary>>,
+    {RealPath, State}.
 
-init(Req, {index, DocRoot}) ->
+
+init(Req, {index, #{docroot := DocRoot}}) ->
     Path = cowboy_req:path(Req),
-    case binary:at(Path, byte_size(Path) - 1) of
-        $/ ->
-            Index = url_join([DocRoot, Path, "index.html"]),
+    case binary:last(Path) == $/ of
+        true ->
+            Index = lists:concat([DocRoot, binary_to_list(<<Path/binary, "index.html">>)]),
             init(Req, {file, Index, []});
-        _ ->
+        false ->
             init(Req, {dir, DocRoot, []})
     end;
-
 
 %% hand swagger.json
 init(Req0, swagger_list) ->
@@ -143,28 +137,11 @@ init(Req0, swagger = Opts) ->
         end,
     {ok, Req, Opts};
 
-init(Req0, mod) ->
-    Mod = ehttpd_req:binding(<<"Mod">>, Req0),
-    Fun = ehttpd_req:binding(<<"Fun">>, Req0),
-    Req =
-        case catch apply(list_to_atom(binary_to_list(Mod)), list_to_atom(binary_to_list(Fun)), [Req0]) of
-            {Err, Reason} when Err == 'EXIT'; Err == error ->
-                Err = list_to_binary(io_lib:format("~p", [Reason])),
-                Msg = jiffy:encode(#{error => Err }),
-                ehttpd_req:reply(500, ?HEADER#{
-                    <<"content-type">> => <<"application/json; charset=utf-8">>
-                }, Msg, Req0);
-            {ok, Req1} ->
-                Req1
-        end,
-    {ok, Req, mod};
-
-
 init(Req, Opts) ->
     case ehttpd_req:method(Req) of
         <<"OPTIONS">> ->
             case ?ACCESS_CONTROL_ALLOW_HEADERS of
-                <<"false">> ->
+                <<>> ->
                     ehttpd_req:reply(403, ?HEADER, <<>>, Req);
                 Header ->
                     ehttpd_req:reply(200, ?HEADER#{
@@ -212,7 +189,6 @@ get_check_request(Map, SWSchema) ->
             end
         end, [], Parameters).
 
-
 get_check_response(Map, SWSchema) ->
     Responses = maps:get(<<"responses">>, Map, #{}),
     Fun =
@@ -223,7 +199,6 @@ get_check_response(Map, SWSchema) ->
             }
         end,
     maps:fold(Fun, #{}, Responses).
-
 
 parse_ref_schema(#{<<"description">> := _} = Schema, SWSchema) ->
     parse_ref_schema(maps:without([<<"description">>], Schema), SWSchema);
@@ -249,7 +224,6 @@ get_definitions(Name, SWSchema) ->
     Definition = maps:get(Name, Definitions), %% to do
     parse_ref_schema(Definition, SWSchema).
 
-
 get_operation_id(Path, Method) ->
     OId =
         case re:run(Path, <<"[a-zA-Z0-9]+">>, [global, {capture, all, list}]) of
@@ -264,7 +238,7 @@ get_operation_id(Path, Method) ->
             _ ->
                 re:replace(Path, <<"[^a-zA-Z0-9]">>, <<>>, [global, [{return, binary}]])
         end,
-    ehttpd_req:to_lower(<<Method/binary, "_", OId/binary>>, [{return, atom}]).
+    list_to_atom(string:to_lower(binary_to_list(<<Method/binary, "_", OId/binary>>))).
 
 get_security(Map, SWSchema) ->
     SecurityDefinitions = maps:get(<<"securityDefinitions">>, SWSchema, #{}),
@@ -291,43 +265,8 @@ get_consumes(Map, SWSchema) ->
 get_produces(Map, SWSchema) ->
     maps:get(<<"produces">>, Map, maps:get(<<"produces">>, SWSchema, [])).
 
+set_state(Name, OperationId, State) ->
+    ehttpd_cache:insert({OperationId, Name, router}, State).
 
-set_state(OperationId, State) ->
-    NewIdx =
-        case ehttpd_cache:lookup({router, index}) of
-            {error, notfound} -> 0;
-            {ok, Index} -> Index + 1
-        end,
-    true = ehttpd_cache:insert({router, index}, NewIdx),
-    true = ehttpd_cache:insert({NewIdx, router}, {OperationId, State}),
-    {ok, NewIdx}.
-
-get_state(Index) ->
-    ehttpd_cache:lookup({Index, router}).
-
-get_state_by_operation(OperationId) ->
-    case ehttpd_cache:match({{'$1', router}, {OperationId, '$2'}}) of
-        {ok, [[Index, State]]} ->
-            {ok, {Index, State}};
-        {error,empty} ->
-            {error, notfound}
-    end.
-
-url_join(List) ->
-    url_join(List, "").
-url_join([], URL) -> URL;
-url_join([Path | Other], URL) when is_binary(Path) ->
-    url_join([binary_to_list(Path) | Other], URL);
-url_join([Path | Other], "") -> url_join(Other, Path);
-url_join([Path | Other], URL) when is_list(Path) ->
-    Url1 =
-        case lists:reverse(URL) of
-            "/" ++ _ -> URL;
-            _ -> lists:concat([URL, "/"])
-        end,
-    Url2 =
-        case Path of
-            "/" ++ Rest -> lists:concat([Url1, Rest]);
-            Rest -> lists:concat([Url1, Rest])
-        end,
-    url_join(Other, Url2).
+get_state(Name, OperationId) ->
+    ehttpd_cache:lookup({OperationId, Name, router}).

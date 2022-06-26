@@ -23,7 +23,7 @@
     "APIKeyHeader": {
       "type": "apiKey",
       "in": "header",
-      "name": "sessionToken"
+      "name": "token"
     },
     "BasicAuth": {
       "type": "basic"
@@ -31,12 +31,12 @@
     "CookieAuth": {
       "type": "apiKey",
       "in": "header",
-      "name": "sessionToken"
+      "name": "token"
     },
     "APIKeyQueryParam": {
       "type": "apiKey",
       "in": "query",
-      "name": "sessionToken"
+      "name": "token"
     }
   },
   "security": [
