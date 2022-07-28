@@ -68,12 +68,10 @@
               "type": "object",
               "properties":{
                 "username": {
-                  "name": "username",
                   "required": true,
                   "type": "string"
                 },
                 "password": {
-                  "name": "password",
                   "required": true,
                   "type": "string"
                 }

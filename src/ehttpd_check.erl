@@ -4,7 +4,8 @@
 
 check_request(Context, Req) ->
     Params = maps:get(check_request, Context, []),
-    check_request_params(Params, Req, #{}).
+    Model = maps:from_list(cowboy_req:parse_qs(Req)),
+    check_request_params(Params, Req, Model).
 
 check_response(Code, Context, Body) ->
     RtnParams = maps:get(check_response, Context, #{}),
