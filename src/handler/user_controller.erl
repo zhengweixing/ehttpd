@@ -40,4 +40,4 @@ do_request(get_getinfo, _Args, Context, _Req) ->
     {200, Result};
 
 do_request(get_captchaimage, _Args, _Context, _Req) ->
-    {200, #{ captchaOnOff => false, img => <<>> }}.
+    {200, #{ captchaEnabled => false, img => <<>> }}.
