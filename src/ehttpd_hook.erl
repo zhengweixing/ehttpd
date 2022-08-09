@@ -18,7 +18,7 @@ add(Key, {Mod, Fun}) ->
     end.
 
 -spec run(Key :: atom(), Args :: list(), Acc :: any()) ->
-    {ok, Acc1 :: any()}.
+    {ok, Acc1 :: any()} | {error, any()}.
 run(Key, Args, Acc) ->
     case ehttpd_cache:lookup(Key) of
         {error, notfound} ->
@@ -34,6 +34,8 @@ run_foldl([{Mod, Fun} | Hooks], Args, Acc) ->
             run_foldl(Hooks, Args, Acc);
         {ok, Acc1} ->
             run_foldl(Hooks, Args, Acc1);
+        {error, Reason} ->
+            {error, Reason};
         {stop, Acc1} ->
             {ok, Acc1}
     end.

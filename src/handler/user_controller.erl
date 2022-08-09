@@ -20,24 +20,44 @@ handle(OperationID, Args, Context, Req) ->
     do_request(OperationID, Args, Context, Req).
 
 do_request(post_register, Args, Context, _Req) ->
-    {Code, Result} = ehttpd_hook:run('user.register', [Args, Context], #{}),
-    {Code, Result};
+    case ehttpd_hook:run('user.register', [Args, Context], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
 do_request(post_logout, Args, Context, _Req) ->
-    {Code, Result} = ehttpd_hook:run('user.logout', [Args, Context], #{}),
-    {Code, Result};
+    case ehttpd_hook:run('user.logout', [Args, Context], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
-do_request(post_login, #{ <<"username">> := UserName, <<"password">> := Password }, _Context, _Req) ->
-    {Code, Result} = ehttpd_hook:run('user.login', [UserName, Password], #{}),
-    {Code, Result};
+do_request(post_login, #{<<"username">> := UserName, <<"password">> := Password}, _Context, _Req) ->
+    case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
 do_request(get_getrouters, _Args, #{user := UserInfo}, _Req) ->
-    {Code, Result} = ehttpd_hook:run('user.get_routers', [UserInfo], #{}),
-    {Code, Result};
+    case ehttpd_hook:run('user.get_routers', [UserInfo], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
 do_request(get_getinfo, _Args, Context, _Req) ->
-    {Code, Result} = ehttpd_hook:run('user.get_info', [Context], #{}),
-    {Code, Result};
+    case ehttpd_hook:run('user.get_info', [Context], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
 do_request(get_captchaimage, _Args, _Context, _Req) ->
     {200, #{ captchaEnabled => false, img => <<>> }}.
