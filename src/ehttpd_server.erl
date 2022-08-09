@@ -53,7 +53,7 @@ start_link(Name, Port, Env) ->
 
 init([Name, Port, Env]) ->
     NewEnv = format_env(Env),
-    load_rewrite(Name, NewEnv),
+    load_rewrite(Name),
     case start_server(Name, Port, NewEnv) of
         {ok, _Pid} ->
             ehttpd_cache:insert({Name, env}, NewEnv),
@@ -136,19 +136,23 @@ format_path(Value) ->
             Path
     end.
 
--spec load_rewrite(Name :: atom(), Env :: env()) -> boolean().
-load_rewrite(Name, #{ docroot := Root }) ->
-    Path = filename:join([Root, "rewrite.conf"]),
-    case file:read_file(Path) of
-        {ok, Data} ->
-            Opts = [global, multiline, {capture, all_but_first, binary}],
-            case re:run(Data, <<"^RewriteRule\s+([^\s]+)\s+([^\s\n]+)">>, Opts) of
-                nomatch -> false;
-                {match, Match} ->
-                    ehttpd_cache:insert({Name, rewrite}, Match)
-            end;
-        _ ->
-            false
+-spec load_rewrite(Name :: atom()) -> boolean().
+load_rewrite(Name) ->
+    case application:get_env(ehttpd, rewrite, "") of
+        "" ->
+            false;
+        Path ->
+            case file:read_file(Path) of
+                {ok, Data} ->
+                    Opts = [global, multiline, {capture, all_but_first, binary}],
+                    case re:run(Data, <<"^RewriteRule\s+([^\s]+)\s+([^\s\n]+)">>, Opts) of
+                        nomatch -> false;
+                        {match, Match} ->
+                            ehttpd_cache:insert({Name, rewrite}, Match)
+                    end;
+                _ ->
+                    false
+            end
     end.
 
 -spec rewrite(Name :: atom(), Path) -> Path when
