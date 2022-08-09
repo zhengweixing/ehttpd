@@ -61,22 +61,25 @@ init(Req, #{
                 operationid = options
             }};
         Method ->
-            Version = ehttpd_req:get_qs(<<"version">>, Req),
-            OperationId = maps:get(Method, Map),
-            {ok, Context} = ehttpd_router:get_state(Name, OperationId),
-            case catch LogicHandler:init(Req, Context) of
-                {no_call, Req1} ->
-                    {cowboy_rest, Req1, State#state{
+            case erlang:function_exported(LogicHandler, init, 2) andalso LogicHandler:init(Req, Map) of
+                false ->
+                    Version = ehttpd_req:get_qs(<<"version">>, Req),
+                    OperationId = maps:get(Method, Map),
+                    {ok, Context} = ehttpd_router:get_state(Name, OperationId),
+                    {cowboy_rest, Req, State#state{
                         operationid = OperationId,
                         context = Context#{
                             name => Name,
                             version => Version
                         }
                     }};
-                {Mod, Req1, Context1} ->
-                    {Mod, Req1, State#state{
+                {Req1, Map1} ->
+                    Version = ehttpd_req:get_qs(<<"version">>, Req),
+                    OperationId = maps:get(Method, Map1),
+                    {ok, Context} = ehttpd_router:get_state(Name, OperationId),
+                    {cowboy_rest, Req1, State#state{
                         operationid = OperationId,
-                        context = Context1#{
+                        context = Context#{
                             name => Name,
                             version => Version
                         }
