@@ -61,9 +61,9 @@ init(Req, #{
                 operationid = options
             }};
         Method ->
+            Version = ehttpd_req:get_qs(<<"version">>, Req),
             case erlang:function_exported(LogicHandler, init, 2) andalso LogicHandler:init(Req, Map) of
                 false ->
-                    Version = ehttpd_req:get_qs(<<"version">>, Req),
                     OperationId = maps:get(Method, Map),
                     {ok, Context} = ehttpd_router:get_state(Name, OperationId),
                     {cowboy_rest, Req, State#state{
@@ -73,10 +73,7 @@ init(Req, #{
                             version => Version
                         }
                     }};
-                {Req1, Map1} ->
-                    Version = ehttpd_req:get_qs(<<"version">>, Req),
-                    OperationId = maps:get(Method, Map1),
-                    {ok, Context} = ehttpd_router:get_state(Name, OperationId),
+                {Req1, #{ operationid := OperationId } = Context} ->
                     {cowboy_rest, Req1, State#state{
                         operationid = OperationId,
                         context = Context#{
