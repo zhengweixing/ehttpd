@@ -81,8 +81,10 @@ has_role(Token, #{rule := Rule}) ->
     case get_session(Token) of
         undefined ->
             anonymous;
-        #{<<"permissions">> := Permissions} = UserInfo ->
-            case check_role(Rule, Permissions) of
+        UserInfo ->
+            Rules = maps:get(<<"rules">>, UserInfo, []),
+            Permissions = maps:get(<<"permissions">>, UserInfo, []),
+            case check_role(Rule, lists:concat([Rules, Permissions])) of
                 false ->
                     {forbidden, Token, UserInfo};
                 true ->
@@ -97,6 +99,8 @@ has_role(Token, #{rule := Rule}) ->
 check_role(_, []) -> false;
 check_role(Rule, [<<>> | Permissions]) ->
     check_role(Rule, Permissions);
+check_role(Rule, [Rule | _Permissions]) ->
+    true;
 check_role(Rule, [Permission | Permissions]) ->
     R = binary:split(Rule, <<":">>, [global]),
     P = binary:split(Permission, <<":">>, [global]),

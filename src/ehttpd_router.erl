@@ -63,7 +63,8 @@ create_route(Name, Mod, Path0, Method, MethodInfo, SWSchema) ->
 parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema) ->
     OperationId = maps:get(<<"operationId">>, MethodInfo),
     Extend = maps:get(<<"extend">>, MethodInfo, #{}),
-    Permission = maps:get(<<"permission">>, MethodInfo, undefined),
+    BId = string:uppercase(atom_to_list(OperationId)),
+    Permission = maps:get(<<"permission">>, MethodInfo, list_to_binary(BId)),
     Config = #{
         extend => Extend,
         rule => Permission,
