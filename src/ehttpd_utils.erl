@@ -56,8 +56,12 @@ filter_module(Check) ->
     lists:foldl(Fun, {[], []}, code:get_path()).
 
 check_attributes(Mod, ehttpd_router) ->
+    Attributes = Mod:module_info(attributes),
+    lists:member(ehttpd_router, proplists:get_keys(Attributes)) andalso
     erlang:function_exported(Mod, route, 2);
 check_attributes(Mod, ehttpd_rest) ->
+    Attributes = Mod:module_info(attributes),
+    lists:member(ehttpd_rest, proplists:get_keys(Attributes)) andalso
     erlang:function_exported(Mod, swagger, 1).
 
 get_module(Dir) ->
