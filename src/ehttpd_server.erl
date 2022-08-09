@@ -142,7 +142,7 @@ load_rewrite(Name) ->
         "" ->
             false;
         Path ->
-            case file:read_file(Path) of
+            case file:read_file(format_path(Path)) of
                 {ok, Data} ->
                     Opts = [global, multiline, {capture, all_but_first, binary}],
                     case re:run(Data, <<"^RewriteRule\s+([^\s]+)\s+([^\s\n]+)">>, Opts) of
