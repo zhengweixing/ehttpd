@@ -64,13 +64,25 @@ init(Req, #{
             Version = ehttpd_req:get_qs(<<"version">>, Req),
             OperationId = maps:get(Method, Map),
             {ok, Context} = ehttpd_router:get_state(Name, OperationId),
-            {cowboy_rest, Req, State#state{
-                operationid = OperationId,
-                context = Context#{
-                    name => Name,
-                    version => Version
-                }
-            }}
+            case catch LogicHandler:init(Req, Context) of
+                {no_call, Req1} ->
+                    {cowboy_rest, Req1, State#state{
+                        operationid = OperationId,
+                        context = Context#{
+                            name => Name,
+                            version => Version
+                        }
+                    }};
+                {Mod, Req1, Context1} ->
+                    {Mod, Req1, State#state{
+                        operationid = OperationId,
+                        context = Context1#{
+                            name => Name,
+                            version => Version
+                        }
+                    }}
+
+            end
     end.
 
 
