@@ -15,6 +15,7 @@
          {docroot, "priv/www/"},
          {swagger, "priv/swagger/swagger-base.json"},
          {rewrite, ""},
+         {token_name, "token"},
 %%         {cacertfile, "priv/TLS/ca/ca.crt"},
 %%         {certfile, "priv/TLS/server/server.crt"},
 %%         {keyfile, "priv/TLS/server/server.key"},

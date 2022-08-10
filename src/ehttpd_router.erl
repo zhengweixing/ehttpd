@@ -257,9 +257,17 @@ get_security(Map, SWSchema) ->
     lists:foldr(Fun, [], SecurityList).
 
 format_security(<<"CookieAuth">> = Key, Auth, Acc) ->
-    [{Key, Auth#{<<"in">> => <<"cookie">>, <<"type">> => <<"CookieAuth3.0">>}} | Acc];
+    Name = application:get_env(ehttpd, token_name, "token"),
+    [{Key, Auth#{
+        <<"in">> => <<"cookie">>,
+        <<"type">> => <<"CookieAuth3.0">>,
+        <<"name">> => list_to_binary(Name)
+    }} | Acc];
 format_security(Key, Auth, Acc) ->
-    [{Key, Auth} | Acc].
+    Name = application:get_env(ehttpd, token_name, "token"),
+    [{Key, Auth#{
+        <<"name">> => list_to_binary(Name)
+    }} | Acc].
 
 get_consumes(Map, SWSchema) ->
     maps:get(<<"consumes">>, Map, maps:get(<<"consumes">>, SWSchema, [])).
