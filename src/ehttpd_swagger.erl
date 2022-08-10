@@ -78,12 +78,27 @@ dtl_compile(Mod, TplPath, Vals, Opts) ->
 
 
 generate(Name, Handlers, Path, Hand) ->
-    {ok, BaseSchemas} = load_schema(Path, [return_maps]),
+    BaseSchemas = load_base_schema(Path),
     Fun =
         fun(Mod, Acc) ->
             check_mod_swagger(Name, Mod, Acc, Hand)
         end,
     lists:foldl(Fun, BaseSchemas, Handlers).
+
+load_base_schema(Path) ->
+    {ok, BaseSchemas} = load_schema(Path, [return_maps]),
+    case application:get_env(ehttpd, token_name) of
+        undefined ->
+            BaseSchemas;
+        {ok, Name} ->
+            Definitions = maps:get(<<"securityDefinitions">>, BaseSchemas, #{}),
+            maps:fold(
+                fun(Key, Map, Acc) ->
+                    Acc#{ Key => Map#{ <<"name">> => Name}}
+                end, #{}, Definitions)
+    end.
+
+
 
 write(Name, Schema) ->
     Info = maps:get(<<"info">>, Schema, #{}),
