@@ -94,7 +94,7 @@ load_base_schema(Path) ->
             Definitions = maps:get(<<"securityDefinitions">>, BaseSchemas, #{}),
             maps:fold(
                 fun(Key, Map, Acc) ->
-                    Acc#{ Key => Map#{ <<"name">> => Name}}
+                    Acc#{ Key => Map#{ <<"name">> => list_to_binary(Name)}}
                 end, #{}, Definitions)
     end.
 
