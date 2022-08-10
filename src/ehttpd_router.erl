@@ -65,16 +65,17 @@ parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema) ->
     Extend = maps:get(<<"extend">>, MethodInfo, #{}),
     BId = string:uppercase(atom_to_list(OperationId)),
     Permission = maps:get(<<"permission">>, MethodInfo, list_to_binary(BId)),
+    BasePath = maps:get(<<"basePath">>, SWSchema, <<>>),
     Config = #{
         extend => Extend,
         rule => Permission,
+        base_path => BasePath,
         authorize => get_security(MethodInfo, SWSchema),
         consumes => get_consumes(MethodInfo, SWSchema),
         produces => get_produces(MethodInfo, SWSchema),
         check_request => get_check_request(MethodInfo, SWSchema),
         check_response => get_check_response(MethodInfo, SWSchema)
     },
-    BasePath = maps:get(<<"basePath">>, SWSchema, <<>>),
     set_state(Name, OperationId, Config),
     State = #{
         name => Name,
