@@ -68,7 +68,8 @@ header(Name, Req, Default) ->
     end.
 
 header(Name, Req) ->
-    cowboy_req:header(Name, Req).
+    Name1 = list_to_binary(string:to_lower(binary_to_list(Name))),
+    cowboy_req:header(Name1, Req).
 
 headers(Req) ->
     cowboy_req:headers(Req).
