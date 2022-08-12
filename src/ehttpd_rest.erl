@@ -62,28 +62,38 @@ init(Req, #{
             }};
         Method ->
             Version = ehttpd_req:get_qs(<<"version">>, Req),
+            OperationId = maps:get(Method, Map, <<"unknown">>),
             case erlang:function_exported(LogicHandler, init, 2) andalso LogicHandler:init(Req, Map) of
                 false ->
-                    OperationId = maps:get(Method, Map, <<"unknown">>),
                     {ok, Context} = ehttpd_router:get_state(Name, OperationId),
-                    {cowboy_rest, Req, State#state{
-                        operationid = OperationId,
-                        context = Context#{
-                            name => Name,
-                            version => Version
-                        }
-                    }};
-                {Req1, #{ operationid := OperationId } = Context} ->
+                    NewContext = Context#{
+                        name => Name,
+                        version => Version
+                    },
+                    default_init(OperationId, Req, State, NewContext);
+                {Req1, undefined} ->
+                    {ok, Context} = ehttpd_router:get_state(Name, OperationId),
+                    NewContext = Context#{
+                        name => Name,
+                        version => Version
+                    },
+                    default_init(OperationId, Req1, State, NewContext);
+                {Req1, #{ operationid := NewOperationId } = Context} ->
                     {cowboy_rest, Req1, State#state{
-                        operationid = OperationId,
+                        operationid = NewOperationId,
                         context = Context#{
                             name => Name,
                             version => Version
                         }
                     }}
-
             end
     end.
+
+default_init(OperationId, Req, State, Context) ->
+    {cowboy_rest, Req, State#state{
+        operationid = OperationId,
+        context = Context
+    }}.
 
 
 -spec allowed_methods(Req :: ehttpd_req:req(), State :: state()) ->
