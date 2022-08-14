@@ -88,7 +88,7 @@ start_server(Name, Port, Env) ->
         env => #{
             dispatch => get_dispatch(Name, Env)
         },
-        middlewares => [cowboy_router, cowboy_handler, ehttpd_middleware]
+        middlewares => [cowboy_router, ehttpd_middleware, cowboy_handler]
     },
     TransOpts = [{port, Port}],
     SSL = maps:with([cacertfile, certfile, keyfile], Env),
