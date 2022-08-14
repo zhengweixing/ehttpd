@@ -16,7 +16,7 @@
 %%% API
 %%%===================================================================
 execute(Req, Env) ->
-    case ehttpd_hook:run('http.middleware', [Req, Env], {Req, Env}) of
+    case ehttpd_hook:run('http.middleware', [], {Req, Env}) of
         {ok, {NReq, Result}} ->
             {ok, NReq, Result};
         {error, Reason} ->
