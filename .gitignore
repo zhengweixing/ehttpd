@@ -18,3 +18,4 @@ _checkouts/
 .DS_Store
 *.iml
 rebar.lock
+.idea/
