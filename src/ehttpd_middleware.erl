@@ -17,8 +17,8 @@
 %%%===================================================================
 execute(Req, Env) ->
     case ehttpd_hook:run('http.middleware', [], {Req, Env}) of
-        {ok, {NReq, Result}} ->
-            {ok, NReq, Result};
+        {ok, {NReq, NEnv}} ->
+            {ok, NReq, NEnv};
         {error, Reason} ->
             logger:error("error execute request ~p, ~p hook failed: ~p",
                 [Req, Env, Reason]),
