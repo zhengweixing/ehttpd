@@ -86,7 +86,8 @@ code_change(_OldVsn, State, _Extra) ->
 start_server(Name, Port, Env) ->
     ProtoOpts = #{
         env => #{
-            dispatch => get_dispatch(Name, Env)
+            dispatch => get_dispatch(Name, Env),
+            middlewares => [cowboy_router, cowboy_handler, ehttpd_middleware]
         }
     },
     TransOpts = [{port, Port}],
