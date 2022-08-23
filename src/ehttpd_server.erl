@@ -87,7 +87,8 @@ start_server(Name, Port, Env) ->
     ProtoOpts = #{
         env => #{
             dispatch => get_dispatch(Name, Env)
-        }
+        },
+        middlewares => [cowboy_router, ehttpd_middleware, cowboy_handler]
     },
     TransOpts = [{port, Port}],
     SSL = maps:with([cacertfile, certfile, keyfile], Env),
