@@ -265,11 +265,15 @@ safe_handle_request(Type, Req0, #state{
 reply(Status, Data, Req, State) ->
     reply(Status, #{}, Data, Req, State).
 
-reply(Status, Header, Data, Req, State) ->
-    Body = jiffy:encode(Data),
+
+reply(Status, Header, Body, Req, State) when is_binary(Body) ->
     NewHeaders = maps:merge(Header, ?HEADER),
     Req1 = ehttpd_req:reply(Status, NewHeaders, Body, Req),
-    {stop, Req1, State}.
+    {stop, Req1, State};
+
+reply(Status, Header, Data, Req, State) ->
+    Body = jiffy:encode(Data),
+    reply(Status, Header, Body, Req, State).
 
 check_multipart(SerName, Req, Acc) ->
     case cowboy_req:read_part(Req) of
