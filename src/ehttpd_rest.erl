@@ -273,7 +273,9 @@ reply(Status, Header, Body, Req, State) when is_binary(Body) ->
 
 reply(Status, Header, Data, Req, State) ->
     Body = jiffy:encode(Data),
-    reply(Status, Header, Body, Req, State).
+    NewHeaders = maps:merge(Header, ?HEADER),
+    Req1 = ehttpd_req:reply(Status, NewHeaders, Body, Req),
+    {stop, Req1, State}.
 
 check_multipart(SerName, Req, Acc) ->
     case cowboy_req:read_part(Req) of
