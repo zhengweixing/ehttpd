@@ -99,15 +99,22 @@ has_role(Token, #{rule := Rule}) ->
 check_role(_, []) -> false;
 check_role(Rule, [<<>> | Permissions]) ->
     check_role(Rule, Permissions);
-check_role(Rule, [Rule | _Permissions]) ->
-    true;
-check_role(Rule, [Permission | Permissions]) ->
-    R = binary:split(Rule, <<":">>, [global]),
-    P = binary:split(Permission, <<":">>, [global]),
-    case check_permission(R, P) of
-        true -> true;
-        false -> check_role(Rule, Permissions)
+check_role(Rule0, [Permission0 | Permissions]) ->
+    Rule = string:to_upper(binary_to_list(Rule0)),
+    Permission = string:to_upper(binary_to_list(Permission0)),
+    case Rule == Permission of
+        true ->
+            true;
+        false ->
+            R = binary:split(Rule, <<":">>, [global]),
+            P = binary:split(Permission, <<":">>, [global]),
+            case check_permission(R, P) of
+                true -> true;
+                false -> check_role(Rule, Permissions)
+            end
     end.
+
+
 
 -spec check_permission(list(), list()) -> boolean().
 check_permission([], []) -> true;
