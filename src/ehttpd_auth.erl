@@ -106,8 +106,8 @@ check_role(Rule0, [Permission0 | Permissions]) ->
         true ->
             true;
         false ->
-            R = binary:split(Rule, <<":">>, [global]),
-            P = binary:split(Permission, <<":">>, [global]),
+            R = string:split(Rule, ":", all),
+            P = string:split(Permission, ":", all),
             case check_permission(R, P) of
                 true -> true;
                 false -> check_role(Rule, Permissions)
@@ -120,7 +120,7 @@ check_role(Rule0, [Permission0 | Permissions]) ->
 check_permission([], []) -> true;
 check_permission(_, []) -> true;
 check_permission([], _) -> false;
-check_permission([_ | R1], [<<"*">> | R2]) ->
+check_permission([_ | R1], ["*" | R2]) ->
     check_permission(R1, R2);
 check_permission([R1 | R2], [R1 | R3]) ->
     check_permission(R2, R3);
