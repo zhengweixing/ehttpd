@@ -21,6 +21,8 @@ handle(OperationID, Args, Context, _Req) ->
         {error, Reason} ->
             Err = list_to_binary(io_lib:format("~p", [Reason])),
             {500, #{error => Err}};
+        {Status, Headers, Res} ->
+            {Status, Headers, Res};
         {Status, Res} ->
             {Status, Res}
     end.
