@@ -13,7 +13,7 @@ check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context) -
     case not lists:member(Token, [undefined, expired]) andalso get_session(Token) of
         R when R == undefined; R == false ->
             case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
-                {ok, #{sessionToken := SessionToken}} ->
+                {ok, #{token := SessionToken}} ->
                     TTL = ehttpd_server:get_env(default, expire, 1800),
                     ehttpd_cache:set_with_ttl(Key, SessionToken, TTL),
                     has_role(SessionToken, Context);
