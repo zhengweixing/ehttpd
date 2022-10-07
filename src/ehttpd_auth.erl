@@ -11,7 +11,7 @@ check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context) -
     Key = erlang:md5(binary_to_list(<<UserName/binary, Password/binary>>)),
     Token = ehttpd_cache:get_with_ttl(Key),
     case not lists:member(Token, [undefined, expired]) andalso get_session(Token) of
-        undefined ->
+        R when R == undefined; R == false ->
             case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
                 {ok, #{sessionToken := SessionToken}} ->
                     TTL = ehttpd_server:get_env(default, expire, 1800),
