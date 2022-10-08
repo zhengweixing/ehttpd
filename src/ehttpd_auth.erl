@@ -110,7 +110,7 @@ check_role(Rule0, [Permission0 | Permissions]) ->
             P = string:split(Permission, ":", all),
             case check_permission(R, P) of
                 true -> true;
-                false -> check_role(Rule, Permissions)
+                false -> check_role(Rule0, Permissions)
             end
     end.
 
