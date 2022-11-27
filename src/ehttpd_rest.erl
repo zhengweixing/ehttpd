@@ -220,10 +220,9 @@ handle_request(Req, State) ->
     safe_handle_request(handle_request, Req, State).
 
 safe_handle_request(Type, Req0, #state{
-    name = SerName,
     operationid = OperationID,
     logic_handler = LogicHandler,
-    context = Context
+    context = #{name := SerName} = Context
 } = State) ->
     try
         {ok, Populated, Req} =
