@@ -20,7 +20,7 @@
 get_paths(Name, Env) ->
     DefRoutes = [
         {"/swaggers", ?MODULE, swagger_list},
-        {"/swagger/:Name", ?MODULE, swagger},
+        {"/[...]/swagger/:Name", ?MODULE, swagger},
         {"/[...]/", ?MODULE, {index, Env}},
         {"/[...]", ?MODULE, {dir, Env, []}}
     ],
