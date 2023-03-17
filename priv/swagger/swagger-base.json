@@ -4,7 +4,7 @@
     "title": "HTTP API",
     "version": "0.1.0",
     "description": "HTTP API",
-    "termsOfService": "http://blog.ashufa.com",
+    "termsOfService": "http://www.uzyiot.com",
     "contact": {
       "name": "support",
       "email": "529459515@qq.com"
@@ -12,7 +12,7 @@
   },
   "externalDocs": {
     "description": "doc",
-    "url": "http://www.xxxx.com"
+    "url": "http://api.uzyiot.com"
   },
   "schemes": [
     "http",
