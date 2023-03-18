@@ -57,42 +57,47 @@ do_request(post_upload, #{<<"file">> := FileInfo}, Context) ->
     {ok, FileInfo1} = ehttpd_hook:run('file.upload', [Context], FileInfo),
     {200, FileInfo1};
 
-do_request(get_node, Args, _Context) ->
-    Info = get_nodes(Args),
+do_request(get_nodes, Args, _Context) ->
+    Info = get_nodes_info(get_node(Args)),
     {200, #{data => Info, code => 200}};
 
-do_request(get_broker, Args, _Context) ->
-    Info = get_brokers(Args),
+do_request(get_brokers, Args, _Context) ->
+    Info = get_brokers(get_node(Args)),
     {200, #{data => Info, code => 200}};
 
 do_request(get_stats, Args, _Context) ->
-    Info = get_stats(Args),
+    Info = get_stats(get_node(Args)),
     {200, #{data => Info, code => 200}};
 
 do_request(get_monitor_cache, _Args, _Context) ->
     Info = get_cache_info(),
     {200, #{data => Info, code => 200}}.
 
+get_nodes_info(all) ->
+    Nodes = emqx_mgmt:list_nodes(),
+    [Info ||{_, Info} <- Nodes];
+get_nodes_info(Node) ->
+    emqx_mgmt:node_info(Node).
 
+get_brokers(all) ->
+    Nodes = emqx_mgmt:list_brokers(),
+    [Info ||{_, Info} <- Nodes];
+get_brokers(Node) ->
+    emqx_mgmt:broker_info(Node).
 
-
-get_nodes(Args) ->
-    io:format("~p~n", [Args]),
-    #{}.
-
-get_brokers(Args) ->
-    io:format("~p~n", [Args]),
-    #{}.
-
-get_stats(Args) ->
-    io:format("~p~n", [Args]),
-    #{}.
-
+get_stats(all) ->
+    Nodes = emqx_mgmt:get_stats(),
+    [#{ node => Node, data => Info } ||{Node, Info} <- Nodes];
+get_stats(Node) ->
+    emqx_mgmt:get_stats(Node).
 
 get_cache_info() ->
     #{
 
     }.
+
+get_node(#{ <<"node">> := undefined }) -> all;
+get_node(#{ <<"node">> := Node }) -> binary_to_atom(Node).
 
 create_zip(FileName, Fs) ->
     case zip:create(FileName, Fs, [memory]) of
