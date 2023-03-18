@@ -148,15 +148,119 @@
         ]
       }
     },
-    "/monitor/server": {
+    "/brokers": {
       "get": {
-        "permission": "system:monitor:query",
-        "summary": "获取系统详情",
-        "description": "获取系统详情",
+        "permission": "system:brokers:query",
+        "summary": "获取 Broker 详情",
+        "description": "获取 Broker 详情",
         "tags": [
           "system"
         ],
-        "parameters": [],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "type": "string",
+            "description": "节点名",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "返回服务器数据"
+          },
+          "404": {
+            "description": "object not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/nodes": {
+      "get": {
+        "permission": "system:node:query",
+        "summary": "获取节点详情",
+        "description": "获取节点详情",
+        "tags": [
+          "system"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "type": "string",
+            "description": "节点名",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "返回服务器数据"
+          },
+          "404": {
+            "description": "object not found",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error",
+            "schema": {
+              "$ref": "#/definitions/Error"
+            }
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "permission": "system:stats:query",
+        "summary": "获取节点状态详情",
+        "description": "获取节点状态详情",
+        "tags": [
+          "system"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "node",
+            "type": "string",
+            "description": "节点名",
+            "required": false
+          }
+        ],
         "responses": {
           "200": {
             "description": "返回服务器数据"

@@ -57,68 +57,42 @@ do_request(post_upload, #{<<"file">> := FileInfo}, Context) ->
     {ok, FileInfo1} = ehttpd_hook:run('file.upload', [Context], FileInfo),
     {200, FileInfo1};
 
-do_request(get_monitor_cache, _Args, _Context) ->
-    Info = get_cache_info(),
+do_request(get_node, Args, _Context) ->
+    Info = get_nodes(Args),
     {200, #{data => Info, code => 200}};
 
-do_request(get_monitor_server, _Args, _Context) ->
-    Info = get_server_info(),
+do_request(get_broker, Args, _Context) ->
+    Info = get_brokers(Args),
+    {200, #{data => Info, code => 200}};
+
+do_request(get_stats, Args, _Context) ->
+    Info = get_stats(Args),
+    {200, #{data => Info, code => 200}};
+
+do_request(get_monitor_cache, _Args, _Context) ->
+    Info = get_cache_info(),
     {200, #{data => Info, code => 200}}.
 
 
-get_server_info() ->
-    #{
-        cpu => #{
-            cpuNum => 2,
-            free => 97.46,
-            sys => 0.51,
-            total => 197000,
-            used => 1.52,
-            wait => 0.51
-        },
-        jvm => #{
-            free => 295.48,
-            home => <<"/">>,
-            inputArgs => <<>>,
-            max => 1008,
-            name => <<"Java HotSpot(TM) 64-Bit Server VM">>,
-            runTime => <<"2天0小时54分钟"/utf8>>,
-            startTime => <<"2022-06-20 08:58:26">>,
-            total => 509.5,
-            usage => 42.01,
-            used => 214.02,
-            version => <<"1.8.0_111">>
-        },
-        mem => #{
-            free => 3.88,
-            total => 7.56,
-            usage => 48.71,
-            used => 3.68
-        },
-        sys => #{
-            computerIp => <<"">>,
-            computerName => <<"">>,
-            osArch => <<"amd64">>,
-            osName => <<"Linux">>
-        },
-        sysFiles => [
-            #{
-                dirName => <<"/">>,
-                free => <<"21.6 GB">>,
-                sysTypeName => <<"ext4">>,
-                total => <<"39.2 GB">>,
-                typeName => <<"/">>,
-                usage => 44.95,
-                used => <<"17.6 GB">>
-            }
-        ]
-    }.
+
+
+get_nodes(Args) ->
+    io:format("~p~n", [Args]),
+    #{}.
+
+get_brokers(Args) ->
+    io:format("~p~n", [Args]),
+    #{}.
+
+get_stats(Args) ->
+    io:format("~p~n", [Args]),
+    #{}.
+
 
 get_cache_info() ->
     #{
 
     }.
-
 
 create_zip(FileName, Fs) ->
     case zip:create(FileName, Fs, [memory]) of
