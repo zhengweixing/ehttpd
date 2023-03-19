@@ -14,7 +14,7 @@ check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context) -
         R when R == undefined; R == false ->
             case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
                 {ok, #{token := SessionToken}} ->
-                    TTL = ehttpd_server:get_env(default, expire, 1800),
+                    TTL = application:get_env(ehttpd, expire, 1800),
                     ehttpd_cache:set_with_ttl(Key, SessionToken, TTL),
                     has_role(SessionToken, Context);
                 _ ->
