@@ -303,7 +303,7 @@ check_multipart(Context, {file, Name, Filename, ContentType}, Req, Acc) ->
                 ok ->
                     check_multipart(Context, Req1, Acc#{
                         Name => #{
-                            <<"path">> => <<BasePath/binary, "/", FilePath/binary>>,
+                            <<"path">> => FilePath,
                             <<"filename">> => Filename,
                             <<"contentType">> => ContentType
                         }});
