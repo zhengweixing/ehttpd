@@ -3,7 +3,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 %% API
--export([md5/1, check_module/1]).
+-export([md5/1, check_module/1, filename_join/2]).
 
 -define(IGNORE_APPS, [
     kernel, sasl, crypto, public_key, asn1, syntax_tools,
@@ -80,3 +80,8 @@ get_module(Dir) ->
         {error, _Reason} ->
             []
     end.
+
+filename_join(Dir, <<"/", Path/binary>>) ->
+    filename_join(Dir, Path);
+filename_join(Dir, Path) ->
+    filename:join([Dir, Path]).

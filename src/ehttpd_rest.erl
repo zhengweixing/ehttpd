@@ -228,7 +228,7 @@ safe_handle_request(Type, Req0, #state{
         {ok, Populated, Req} =
             case Type of
                 handle_multipart ->
-                    check_multipart(SerName, Req0, #{});
+                    check_multipart(Context, Req0, #{});
                 handle_request ->
                     ehttpd_check:check_request(Context, Req0)
             end,
@@ -276,33 +276,34 @@ reply(Status, Header, Data, Req, State) ->
     Req1 = ehttpd_req:reply(Status, NewHeaders, Body, Req),
     {stop, Req1, State}.
 
-check_multipart(SerName, Req, Acc) ->
+check_multipart(Context, Req, Acc) ->
     case cowboy_req:read_part(Req) of
         undefined ->
             {ok, Acc, Req};
         {ok, Headers, Req1} ->
-            check_multipart(SerName, cow_multipart:form_data(Headers), Req1, Acc);
+            check_multipart(Context, cow_multipart:form_data(Headers), Req1, Acc);
         {done, Req1} ->
             {ok, Acc, Req1}
     end.
-check_multipart(SerName, {data, Name}, Req, Acc) ->
+check_multipart(Context, {data, Name}, Req, Acc) ->
     {ok, Data, Req1} = cowboy_req:read_part_body(Req),
-    check_multipart(SerName, Req1, Acc#{Name => Data});
-check_multipart(SerName, {file, Name, Filename, ContentType}, Req, Acc) ->
+    check_multipart(Context, Req1, Acc#{Name => Data});
+check_multipart(Context, {file, Name, Filename, ContentType}, Req, Acc) ->
+    #{ name := SerName, base_path := BasePath } = Context,
     DocRoot = list_to_binary(ehttpd_server:get_env(SerName, docroot, "")),
     {{Y, M, D}, {H, N, S}} = calendar:local_time(),
     Now = list_to_binary(lists:concat([Y, M, D, H, N, S])),
     Exe = filename:extension(Filename),
-    FilePath = <<"upload/", Now/binary, Exe/binary>>,
-    Path = filename:join([DocRoot, FilePath]),
+    FilePath = <<BasePath/binary, "/upload/", Now/binary, Exe/binary>>,
+    Path = ehttpd_utils:filename_join(DocRoot, FilePath),
     case filelib:ensure_dir(Path) of
         ok ->
             {ok, Bin, Req1} = cowboy_req:read_part_body(Req),
             case file:write_file(Path, Bin, [append]) of
                 ok ->
-                    check_multipart(SerName, Req1, Acc#{
+                    check_multipart(Context, Req1, Acc#{
                         Name => #{
-                            <<"path">> => <<"/", FilePath/binary>>,
+                            <<"path">> => <<BasePath/binary, "/", FilePath/binary>>,
                             <<"filename">> => Filename,
                             <<"contentType">> => ContentType
                         }});
