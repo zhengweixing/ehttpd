@@ -123,8 +123,10 @@ is_authorized(Req, #state{operationid = options} = State) ->
 is_authorized(Req0, #state{context = Context} = State) ->
     AuthList = maps:get(authorize, Context, []),
     {Args, Req} = ehttpd_auth:pre_check(AuthList, Req0),
-    case ehttpd_auth:check_auth(Args, Context) of
+    case ehttpd_auth:check_auth(Args, Context, Req) of
         {true, Token, UserInfo} ->
+            Log = ehttpd_utils:get_log(Req),
+            ehttpd_hook:run('http.request', [UserInfo, Log], #{}),
             NewContext = Context#{token => Token, user => UserInfo},
             {true, Req, State#state{context = NewContext}};
         anonymous when AuthList == [] ->

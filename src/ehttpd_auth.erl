@@ -1,18 +1,19 @@
 -module(ehttpd_auth).
 
 %% API
--export([pre_check/2, check_auth/2, put_session/3, get_session/1, delete_session/1]).
+-export([pre_check/2, check_auth/3, put_session/3, get_session/1, delete_session/1]).
 
--spec check_auth(Args :: map(), Context :: ehttpd_rest:context()) ->
+-spec check_auth(Args :: map(), Context :: ehttpd_rest:context(), Req :: ehttpd_req:req()) ->
     anonymous | {true, Token, UserInfo} | {forbidden, Token, UserInfo} when
     Token :: binary(),
     UserInfo :: #{binary() => any()}.
-check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context) ->
+check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context, Req) ->
     Key = erlang:md5(binary_to_list(<<UserName/binary, Password/binary>>)),
     Token = ehttpd_cache:get_with_ttl(Key),
     case not lists:member(Token, [undefined, expired]) andalso get_session(Token) of
         R when R == undefined; R == false ->
-            case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
+            Log = ehttpd_utils:get_log(Req),
+            case ehttpd_hook:run('user.login', [UserName, Password, Log, #{}], #{}) of
                 {ok, #{token := SessionToken}} ->
                     TTL = application:get_env(ehttpd, expire, 1800),
                     ehttpd_cache:set_with_ttl(Key, SessionToken, TTL),
@@ -23,9 +24,9 @@ check_auth(#{<<"username">> := UserName, <<"password">> := Password}, Context) -
         _ ->
             has_role(Token, Context)
     end;
-check_auth(#{<<"token">> := Token}, Context) ->
+check_auth(#{<<"token">> := Token}, Context, _Req) ->
     has_role(Token, Context);
-check_auth(_, _Context) ->
+check_auth(_, _Context, _Req) ->
     anonymous.
 
 

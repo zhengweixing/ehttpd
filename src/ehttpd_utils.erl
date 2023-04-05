@@ -3,7 +3,7 @@
 -include_lib("stdlib/include/qlc.hrl").
 
 %% API
--export([md5/1, check_module/1, filename_join/2]).
+-export([md5/1, check_module/1, filename_join/2, get_log/1]).
 
 -define(IGNORE_APPS, [
     kernel, sasl, crypto, public_key, asn1, syntax_tools,
@@ -85,3 +85,19 @@ filename_join(Dir, <<"/", Path/binary>>) ->
     filename_join(Dir, Path);
 filename_join(Dir, Path) ->
     filename:join([Dir, Path]).
+
+
+get_log(Req) ->
+    Path = cowboy_req:path(Req),
+    UserAgent = cowboy_req:header(<<"user-agent">>, Req),
+    Os = cowboy_req:header(<<"sec-ch-ua-platform">>, Req),
+    {Addr, Port} = cowboy_req:peer(Req),
+    Peer = list_to_binary(inet:ntoa(Addr) ++ ":" ++ integer_to_list(Port)),
+    Method = cowboy_req:method(Req),
+    #{
+        <<"Method">> => Method,
+        <<"UserAgent">> => UserAgent,
+        <<"OS">> => Os,
+        <<"Path">> => Path,
+        <<"Peer">> => Peer
+    }.
