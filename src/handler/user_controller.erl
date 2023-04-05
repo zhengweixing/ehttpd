@@ -37,8 +37,9 @@ do_request(post_logout, Args, Context, _Req) ->
 
 do_request(get_login, Args, Context, Req) ->
     do_request(post_login, Args, Context, Req);
-do_request(post_login, #{<<"username">> := UserName, <<"password">> := Password}, _Context, _Req) ->
-    case ehttpd_hook:run('user.login', [UserName, Password], #{}) of
+do_request(post_login, #{<<"username">> := UserName, <<"password">> := Password}, _Context, Req) ->
+    Log = ehttpd_utils:get_log(Req),
+    case ehttpd_hook:run('user.login', [UserName, Password, Log], #{}) of
         {ok, Result} ->
             {200, Result};
         {error, Result} ->
