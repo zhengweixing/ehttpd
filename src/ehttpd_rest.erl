@@ -126,7 +126,7 @@ is_authorized(Req0, #state{context = Context} = State) ->
     case ehttpd_auth:check_auth(Args, Context, Req) of
         {true, Token, UserInfo} ->
             Log = ehttpd_utils:get_log(Req),
-            ehttpd_hook:run('http.request', [UserInfo, Log], #{}),
+            ehttpd_hook:run('log.request', [UserInfo, Log], #{}),
             NewContext = Context#{token => Token, user => UserInfo},
             {true, Req, State#state{context = NewContext}};
         anonymous when AuthList == [] ->
