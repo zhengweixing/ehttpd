@@ -90,14 +90,33 @@ filename_join(Dir, Path) ->
 get_log(Req) ->
     Path = cowboy_req:path(Req),
     UserAgent = cowboy_req:header(<<"user-agent">>, Req),
-    Os = cowboy_req:header(<<"sec-ch-ua-platform">>, Req),
     {Addr, Port} = cowboy_req:peer(Req),
     Peer = list_to_binary(inet:ntoa(Addr) ++ ":" ++ integer_to_list(Port)),
     Method = cowboy_req:method(Req),
     #{
         <<"Method">> => Method,
         <<"UserAgent">> => UserAgent,
-        <<"OS">> => Os,
+        <<"OS">> => get_os(Req, UserAgent),
         <<"Path">> => Path,
         <<"Peer">> => Peer
     }.
+
+get_os(Req, UserAgent) ->
+    case cowboy_req:header(<<"sec-ch-ua-platform">>, Req) of
+        undefined ->
+            case re:run(UserAgent, <<"Mac">>) of
+                {match, _} ->
+                    <<"macOS">>;
+                nomatch ->
+                    case re:run(UserAgent, <<"Windows">>) of
+                        {match, _} ->
+                            <<"Windows">>;
+                        nomatch ->
+                            undefined
+                    end
+            end;
+        Os ->
+            re:replace(Os, <<"\"">>, <<>>, [global, {return, binary}])
+    end.
+
+
