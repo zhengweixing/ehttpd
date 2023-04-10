@@ -104,16 +104,9 @@ get_log(Req) ->
 get_os(Req, UserAgent) ->
     case cowboy_req:header(<<"sec-ch-ua-platform">>, Req) of
         undefined ->
-            case re:run(UserAgent, <<"Mac">>) of
-                {match, _} ->
-                    <<"macOS">>;
-                nomatch ->
-                    case re:run(UserAgent, <<"Windows">>) of
-                        {match, _} ->
-                            <<"Windows">>;
-                        nomatch ->
-                            undefined
-                    end
+            case re:run(UserAgent, <<"Mac|Windows|IOS|Android|HarmonyOS|Linux">>, [{capture,all,binary}]) of
+                {match, Os} -> Os;
+                nomatch -> undefined
             end;
         Os ->
             re:replace(Os, <<"\"">>, <<>>, [global, {return, binary}])
