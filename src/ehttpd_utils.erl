@@ -105,7 +105,7 @@ get_os(Req, UserAgent) ->
     case cowboy_req:header(<<"sec-ch-ua-platform">>, Req) of
         undefined ->
             case re:run(UserAgent, <<"Mac|Windows|IOS|Android|HarmonyOS|Linux">>, [{capture,all,binary}]) of
-                {match, Os} -> Os;
+                {match, [Os|_]} -> Os;
                 nomatch -> undefined
             end;
         Os ->
