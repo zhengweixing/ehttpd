@@ -90,8 +90,7 @@ filename_join(Dir, Path) ->
 get_log(Req) ->
     Path = cowboy_req:path(Req),
     UserAgent = cowboy_req:header(<<"user-agent">>, Req),
-    {Addr, Port} = cowboy_req:peer(Req),
-    Peer = list_to_binary(inet:ntoa(Addr) ++ ":" ++ integer_to_list(Port)),
+    Peer = get_peer(Req),
     Method = cowboy_req:method(Req),
     #{
         <<"Method">> => Method,
@@ -112,4 +111,12 @@ get_os(Req, UserAgent) ->
             re:replace(Os, <<"\"">>, <<>>, [global, {return, binary}])
     end.
 
+get_peer(Req) ->
+    case cowboy_req:header(<<"X-Real-IP">>, Req) of
+        undefined ->
+            {Addr, Port} = cowboy_req:peer(Req),
+            list_to_binary(inet:ntoa(Addr) ++ ":" ++ integer_to_list(Port));
+        Peer ->
+            Peer
+    end.
 
