@@ -45,6 +45,14 @@ do_request(post_login, #{<<"username">> := UserName, <<"password">> := Password}
         {error, Result} ->
             {500, Result}
     end;
+do_request(post_login, #{<<"wechatSession">> := WechatSession}, _Context, Req) ->
+    Log = ehttpd_utils:get_log(Req),
+    case ehttpd_hook:run('user.login_by_wechat', [WechatSession, Log], #{}) of
+        {ok, Result} ->
+            {200, Result};
+        {error, Result} ->
+            {500, Result}
+    end;
 
 do_request(get_getrouters, _Args, #{user := UserInfo}, _Req) ->
     case ehttpd_hook:run('user.get_routers', [UserInfo], #{}) of
