@@ -21,6 +21,88 @@
     }
   },
   "paths": {
+    "/generate/api": {
+      "post": {
+        "permission": "system:api:gen",
+        "summary": "根据 swagger 产生 API 代码",
+        "description": "根据 swagger 产生 API 代码",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "mod",
+            "type": "string",
+            "description": "模块名",
+            "required": true
+          },
+          {
+            "in": "body",
+            "name": "swagger",
+            "description": "swagger 描述",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Swagger"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns operation status"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/upload": {
+      "post": {
+        "permission": "system:file:upload",
+        "summary": "服务器文件上传",
+        "description": "文件上传到服务器",
+        "consumes": [
+          "multipart/form-data"
+        ],
+        "parameters": [
+          {
+            "name": "file",
+            "in": "formData",
+            "type": "file"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns operation status"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Server Internal error"
+          }
+        },
+        "tags": [
+          "system"
+        ]
+      }
+    },
     "/logout": {
       "post": {
         "summary": "退出登录",
