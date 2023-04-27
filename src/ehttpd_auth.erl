@@ -97,6 +97,7 @@ has_role(Token, #{rule := Rule}) ->
 %% <<"system:user:edit">>, [<<"*:*:*">>]
 -spec check_role(Rule, [Rule]) -> boolean() when
     Rule :: binary().
+check_role(<<>>, _) -> true;
 check_role(_, []) -> false;
 check_role(Rule, [<<>> | Permissions]) ->
     check_role(Rule, Permissions);
