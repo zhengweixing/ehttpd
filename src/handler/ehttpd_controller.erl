@@ -50,8 +50,8 @@ do_request(post_upload, #{<<"file">> := FileInfo}, Context, _Req) ->
 
 do_request(get_permission, #{}, _Context, _Req) ->
     {ok, List} = ehttpd_cache:match({{'$1', permission}, '$2'}),
-    Data = [{Rule, Desc} || [Rule, Desc] <- List],
-    {200, #{data => Data, code => 200}};
+    Data1 = [#{ name => Rule, desc => Desc } || [Rule, Desc] <- List],
+    {200, #{data => Data1, code => 200}};
 
 
 do_request(post_register, Args, Context, _Req) ->
