@@ -65,7 +65,7 @@ parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema) ->
     OperationId = maps:get(<<"operationId">>, MethodInfo),
     Extend = maps:get(<<"extend">>, MethodInfo, #{}),
     Permission = maps:get(<<"permission">>, MethodInfo, <<>>),
-    save_permission(Permission, MethodInfo),
+    save_permission(Path, Permission, MethodInfo),
     BasePath = maps:get(<<"basePath">>, SWSchema, <<>>),
     Config = #{
         extend => Extend,
@@ -86,10 +86,11 @@ parse_path(Name, Mod, Path, Method, MethodInfo, SWSchema) ->
     RealPath = <<BasePath/binary, Path/binary>>,
     {RealPath, State}.
 
-save_permission(<<>>, _) -> false;
-save_permission(Rule, MethodInfo) ->
-    Desc = maps:get(<<"summary">>, MethodInfo, maps:get(<<"description">>, MethodInfo, <<>>)),
-    ehttpd_cache:insert({Rule, permission}, Desc).
+save_permission(_, <<>>, _) -> false;
+save_permission(Path, Rule, MethodInfo) ->
+    Summary = maps:get(<<"summary">>, MethodInfo, <<>>),
+    Desc = maps:get(<<"description">>, MethodInfo, <<>>),
+    ehttpd_cache:insert({Rule, permission}, {Path, Summary, Desc}).
 
 init(Req, {index, #{docroot := DocRoot}}) ->
     Path = cowboy_req:path(Req),

@@ -49,9 +49,14 @@ do_request(post_upload, #{<<"file">> := FileInfo}, Context, _Req) ->
     {200, FileInfo1};
 
 do_request(get_permission, #{}, _Context, _Req) ->
-    {ok, List} = ehttpd_cache:match({{'$1', permission}, '$2'}),
-    Data1 = [#{ name => Rule, desc => Desc } || [Rule, Desc] <- List],
-    {200, #{data => Data1, code => 200}};
+    {ok, List} = ehttpd_cache:match({{'$1', permission}, {'$2', '$3', '$4'}}),
+    Data = [#{
+        name => Rule,
+        path => Path,
+        summary => Summary,
+        desc => Desc
+    } || [Rule, Path, Summary, Desc] <- List],
+    {200, #{data => Data, code => 200}};
 
 
 do_request(post_register, Args, Context, _Req) ->
