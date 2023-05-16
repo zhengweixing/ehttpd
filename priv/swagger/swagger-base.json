@@ -12,7 +12,7 @@
   },
   "externalDocs": {
     "description": "doc",
-    "url": "http://api.uzyiot.com"
+    "url": "http://doc.uzyiot.com"
   },
   "schemes": [
     "http",
