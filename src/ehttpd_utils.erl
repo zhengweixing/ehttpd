@@ -112,7 +112,7 @@ get_os(Req, UserAgent) ->
     end.
 
 get_peer(Req) ->
-    case cowboy_req:header(<<"X-Real-IP">>, Req) of
+    case cowboy_req:header(<<"x-real-ip">>, Req) of
         undefined ->
             {Addr, Port} = cowboy_req:peer(Req),
             list_to_binary(inet:ntoa(Addr) ++ ":" ++ integer_to_list(Port));
