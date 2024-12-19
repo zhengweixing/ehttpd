@@ -6,22 +6,21 @@
          asn1,
          stdlib,
          cowboy,
-         jiffy,
-         erlydtl
+         jiffy
      ]},
      {modules, []},
      {env, [
-         {port, 6080},
-         {docroot, "priv/www/"},
-         {swagger, "priv/swagger/swagger-base.json"},
-         {rewrite, ""},
-         {token_name, "sessionToken"},
+%%         {port, 6080},
+%%         {docroot, "priv/www/"},
+%%         {swagger, "priv/swagger/swagger-base.json"},
+%%         {rewrite, ""},
+%%         {token_name, "sessionToken"},
 %%         {cacertfile, "priv/TLS/ca/ca.crt"},
 %%         {certfile, "priv/TLS/server/server.crt"},
 %%         {keyfile, "priv/TLS/server/server.key"},
-         {expire, 1800},
-         {debug, true},
-         {access_control_allow_headers, "Origin, sessionToken, X-Requested-With, Content-Type, Accept, authorization, istoken"}
+%%         {expire, 1800},
+%%         {debug, true},
+%%         {access_control_allow_headers, "Origin, sessionToken, X-Requested-With, Content-Type, Accept, authorization, istoken"}
      ]},
      {mod, {ehttpd_app, []}},
      {registered, [ehttpd_app]}]}.
