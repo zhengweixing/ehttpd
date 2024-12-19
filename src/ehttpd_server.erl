@@ -53,7 +53,7 @@ start_link(Name, Port, Env) ->
 
 init([Name, Port, Env]) ->
     NewEnv = format_env(Env),
-    load_rewrite(Name),
+    load_rewrite(Name, NewEnv),
     case start_server(Name, Port, NewEnv) of
         {ok, _Pid} ->
             ehttpd_cache:insert({Name, env}, NewEnv),
@@ -111,6 +111,7 @@ format_env(Env) ->
 -spec format_env(Key :: atom(), Value :: any(), Acc) -> Acc when
     Acc :: map().
 format_env(Key, Value, Acc) when
+    Key == rewrite;
     Key == swagger;
     Key == docroot;
     Key == cacertfile;
@@ -136,13 +137,13 @@ format_path(Value) ->
             Path
     end.
 
--spec load_rewrite(Name :: atom()) -> boolean().
-load_rewrite(Name) ->
-    case application:get_env(ehttpd, rewrite, "") of
+-spec load_rewrite(Name :: atom(), map()) -> boolean().
+load_rewrite(Name, NewEnv) ->
+    case maps:get(rewrite, NewEnv, "") of
         "" ->
             false;
         Path ->
-            case file:read_file(format_path(Path)) of
+            case file:read_file(Path) of
                 {ok, Data} ->
                     Opts = [global, multiline, {capture, all_but_first, binary}],
                     case re:run(Data, <<"^RewriteRule\s+([^\s]+)\s+([^\s\n]+)">>, Opts) of
