@@ -54,9 +54,9 @@ start_link(Name, Port, Env) ->
 init([Name, Port, Env]) ->
     NewEnv = format_env(Env),
     load_rewrite(Name, NewEnv),
+    ehttpd_cache:insert({Name, env}, NewEnv),
     case start_server(Name, Port, NewEnv) of
         {ok, _Pid} ->
-            ehttpd_cache:insert({Name, env}, NewEnv),
             {ok, #state{name = Name}};
         {error, Reason} ->
             {stop, Reason}
