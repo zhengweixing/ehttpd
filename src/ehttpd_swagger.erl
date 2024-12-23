@@ -151,7 +151,13 @@ handle_call(list, _From, #state{swagger = List} = State) ->
 handle_call({write, Name, Version, Schema}, _From, #state{swagger = List} = State) ->
     case lists:keyfind(Name, 1, List) of
         false ->
-            SchemaPath = get_priv(?MODULE, ?SWAGGER(Name, Version)),
+            SchemaPath =
+                case ehttpd_server:get_env(Name, docroot, "") of
+                    "" ->
+                        get_priv(?MODULE, ?SWAGGER(Name, Version));
+                    DocRoot ->
+                        filename:join([DocRoot, ?SWAGGER(Name, Version)])
+                end,
             Reply = file:write_file(SchemaPath, jiffy:encode(Schema), [write]),
             {reply, Reply, State#state{swagger = [{Name, Version} | List]}};
         {Name, _Version} ->
@@ -175,7 +181,14 @@ handle_call({read, Name, Config}, _From, #state{swagger = List} = State) ->
                         end, #{}, Keys)
                 end,
             Map = Fun([<<"host">>, <<"basePath">>]),
-            case load_schema(?MODULE, ?SWAGGER(Name, Version), [{labels, binary}, return_maps]) of
+            SchemaPath =
+                case ehttpd_server:get_env(Name, docroot, "") of
+                    "" ->
+                        get_priv(?MODULE, ?SWAGGER(Name, Version));
+                    DocRoot ->
+                        filename:join([DocRoot, ?SWAGGER(Name, Version)])
+                end,
+            case load_schema(SchemaPath, [{labels, binary}, return_maps]) of
                 {ok, Schema} ->
                     NewSchema = maps:merge(Schema, Map),
                     FinSchema =
