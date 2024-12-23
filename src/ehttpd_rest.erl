@@ -109,9 +109,9 @@ allowed_methods(Req, State) ->
         Req :: ehttpd_req:req(),
         State :: state()
     }.
-is_authorized(Req, #state{operationid = options} = State) ->
-    case ?ACCESS_CONTROL_ALLOW_HEADERS of
-        <<>> ->
+is_authorized(Req, #state{ name = Name, operationid = options} = State) ->
+    case ehttpd_server:get_env(Name, access_control_allow_headers, <<>>) of
+        undefined ->
             reply(403, #{code => 403, msg => <<"forbidden">>}, Req, State);
         Header ->
             Header1 = ?HEADER#{

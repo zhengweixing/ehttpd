@@ -1,7 +1,7 @@
 -author("kenneth").
 -define(APP, ehttpd).
 -define(SWAGGER(Name, Ver), atom_to_list(Name) ++ "_" ++ binary_to_list(Ver) ++ ".json").
--define(ACCESS_CONTROL_ALLOW_HEADERS, list_to_binary(application:get_env(ehttpd, access_control_allow_headers, ""))).
+-define(ACCESS_CONTROL_ALLOW_HEADERS, list_to_binary(application:get_env(?APP, access_control_allow_headers, ""))).
 
 
 %% 默认请求头
