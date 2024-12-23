@@ -58,6 +58,7 @@ init(Req, #{
     case ehttpd_req:method(Req) of
         <<"OPTIONS">> ->
             {cowboy_rest, Req, State#state{
+                name = Name,
                 operationid = options
             }};
         Method ->
@@ -224,7 +225,7 @@ handle_request(Req, State) ->
 safe_handle_request(Type, Req0, #state{
     operationid = OperationID,
     logic_handler = LogicHandler,
-    context = #{name := SerName} = Context
+    context = #{name := _SerName} = Context
 } = State) ->
     try
         {ok, Populated, Req} =
