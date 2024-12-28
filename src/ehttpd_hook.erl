@@ -1,7 +1,7 @@
 -module(ehttpd_hook).
 
 %% API
--export([add/2, run/3]).
+-export([add/2, run/3, del/1]).
 
 -spec add(Key :: atom(), {Mod :: module(), Fun :: atom()}) -> true.
 add(Key, {Mod, Fun}) ->
@@ -16,6 +16,9 @@ add(Key, {Mod, Fun}) ->
                     ehttpd_cache:insert(Key, [{Mod, Fun} | Hooks])
             end
     end.
+
+del(Key) ->
+    ehttpd_cache:delete(Key).
 
 -spec run(Key :: atom(), Args :: list(), Acc :: any()) ->
     {ok, Acc1 :: any()} | {error, any()}.
